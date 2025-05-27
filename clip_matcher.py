@@ -10,7 +10,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--image_folder', type=str, default="Thailand/image", help='Folder with input images')
 parser.add_argument('--prompt', type=str, default="monkey", help='Text prompt to search for')
-parser.add_argument('--model', type=str, default="ViT-B/32", help='CLIP model to use')
+parser.add_argument('--model', type=str, default="ViT-L/14@336px", help='CLIP model to use')
 parser.add_argument('--top_k', type=int, default=10, help='Top K similar images to retrieve')
 args = parser.parse_args()
 
@@ -30,8 +30,8 @@ model_name_safe = args.model.replace("/", "_")
 prompt_name_safe = args.prompt.replace(" ", "_")
 base_folder = os.path.join(args.image_folder, "..")
 
-embedding_file = os.path.join(base_folder, f"{prompt_name_safe}_{model_name_safe}_embeddings.npy")
-filename_file = os.path.join(base_folder, f"{prompt_name_safe}_{model_name_safe}_filenames.npy")
+embedding_file = os.path.join(base_folder, f"{model_name_safe}_embeddings.npy")
+filename_file = os.path.join(base_folder, f"{model_name_safe}_filenames.npy")
 output_folder = os.path.join(base_folder, f"{prompt_name_safe}_{model_name_safe}_top_matches")
 
 # ==== Load or Compute Image Embeddings ====
