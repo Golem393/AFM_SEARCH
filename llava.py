@@ -1,24 +1,20 @@
-
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
+# Add the LLaVA folder to Python path (assuming it's in the parent directory)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "LLaVA"))
 
-#from LLaVA.llava.model.builder import load_pretrained_model
-from LLaVA.llava.mm_utils import get_model_name_from_path
-from LLaVA.llava.eval.run_llava import eval_model
-
+from llava.mm_utils import get_model_name_from_path
+from llava.eval.run_llava import eval_model
 
 # Set your prompt here
 prompt = "Does this image show a girl with black hair"
 
-# Folder path containing images
+# Update the image folder path (now it's in a sibling directory)
 image_folder = "Thailand/girl_with_black_hair_ViT-L_14@336px_top_matches"
 
 # Load the LLaVA model and processor
 model_path = "liuhaotian/llava-v1.5-7b"
-
-
 
 # Loop through all images in the folder
 for filename in os.listdir(image_folder):
@@ -39,4 +35,5 @@ for filename in os.listdir(image_folder):
         })()
 
         output = eval_model(args)
+        print(filename)
         print(output)
