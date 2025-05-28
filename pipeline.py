@@ -17,7 +17,7 @@ class CLIPLLaVAPipeline:
 
     def create_verification_report_pdf(self, *, confirmed, rejected, unclear, output_folder, prompt, pdf_path="verification_results.pdf"):
         def load_images(filenames, folder):
-            return [(filename, Image.open(os.path.join(folder, filename))) for filename in filenames]
+            return [(filename, Image.open(os.path.join(folder, filename)).rotate(270, expand=True)) for filename in filenames]
 
         confirmed_images = load_images(confirmed, os.path.join(output_folder, "confirmed"))
         rejected_images = load_images(rejected, os.path.join(output_folder, "rejected"))
@@ -29,23 +29,27 @@ class CLIPLLaVAPipeline:
             ("Unclear", unclear_images)
         ]
 
-        max_images = max(len(confirmed_images), len(rejected_images), len(unclear_images))
-        num_categories = 3
+        num_cols = len(all_images)
+        max_rows = max(len(confirmed_images), len(rejected_images), len(unclear_images))
 
-        fig, axs = plt.subplots(max_images, num_categories, figsize=(num_categories * 4, max_images * 3))
-        if max_images == 1:
-            axs = [axs]  
+        fig, axs = plt.subplots(max_rows, num_cols, figsize=(num_cols * 4, max_rows * 3))
+        fig.suptitle(f'LLaVA Verification Results for Prompt: "{prompt}"', fontsize=16)
 
-        fig.suptitle(f"LLaVA Verification Results for Prompt: \"{prompt}\"", fontsize=16)
+        if max_rows == 1 and num_cols == 1:
+            axs = [[axs]]
+        elif max_rows == 1:
+            axs = [axs]
+        elif num_cols == 1:
+            axs = [[ax] for ax in axs]
 
         for col_idx, (category, images) in enumerate(all_images):
-            for row_idx in range(max_images):
-                ax = axs[row_idx][col_idx] if max_images > 1 else axs[col_idx]
+            for row_idx in range(max_rows):
+                ax = axs[row_idx][col_idx]
+                ax.axis('off')
                 if row_idx < len(images):
                     filename, img = images[row_idx]
                     ax.imshow(img)
                     ax.set_title(f"{filename}", fontsize=8)
-                ax.axis('off')
             axs[0][col_idx].set_title(category, fontsize=12)
 
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
@@ -137,7 +141,7 @@ class CLIPLLaVAPipeline:
         }
 
 if __name__ == "__main__":
-    prompt = "flag of Thailand"
+    prompt = "a stone golem with a red gem in its chest"
     # Example usage
     pipeline = CLIPLLaVAPipeline(
         image_folder="Thailand/image",
