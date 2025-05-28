@@ -1,6 +1,9 @@
 import os
 from clip_matcher import CLIPMatcher
 from llava_runner import LLaVAVerifier
+import matplotlib.pyplot as plt
+from PIL import Image
+import math
 
 class CLIPLLaVAPipeline:
     def __init__(self, image_folder, clip_prompt, verification_prompt, 
@@ -11,6 +14,45 @@ class CLIPLLaVAPipeline:
         self.clip_model = clip_model
         self.top_k = top_k
         self.llava_model = llava_model
+
+    def create_verification_report_pdf(self, *, confirmed, rejected, unclear, output_folder, prompt, pdf_path="verification_results.pdf"):
+        def load_images(filenames, folder):
+            return [(filename, Image.open(os.path.join(folder, filename))) for filename in filenames]
+
+        confirmed_images = load_images(confirmed, os.path.join(output_folder, "confirmed"))
+        rejected_images = load_images(rejected, os.path.join(output_folder, "rejected"))
+        unclear_images = load_images(unclear, os.path.join(output_folder, "unclear"))
+
+        all_images = [
+            ("Confirmed", confirmed_images),
+            ("Rejected", rejected_images),
+            ("Unclear", unclear_images)
+        ]
+
+        max_images = max(len(confirmed_images), len(rejected_images), len(unclear_images))
+        num_categories = 3
+
+        fig, axs = plt.subplots(max_images, num_categories, figsize=(num_categories * 4, max_images * 3))
+        if max_images == 1:
+            axs = [axs]  
+
+        fig.suptitle(f"LLaVA Verification Results for Prompt: \"{prompt}\"", fontsize=16)
+
+        for col_idx, (category, images) in enumerate(all_images):
+            for row_idx in range(max_images):
+                ax = axs[row_idx][col_idx] if max_images > 1 else axs[col_idx]
+                if row_idx < len(images):
+                    filename, img = images[row_idx]
+                    ax.imshow(img)
+                    ax.set_title(f"{filename}", fontsize=8)
+                ax.axis('off')
+            axs[0][col_idx].set_title(category, fontsize=12)
+
+        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+        pdf_output_path = os.path.join(output_folder, pdf_path)
+        plt.savefig(pdf_output_path)
+        plt.close()
+        print(f"PDF report saved at: {pdf_output_path}")
         
     def run(self):
         # Step 1: Run CLIP matcher to find top matches
@@ -77,6 +119,15 @@ class CLIPLLaVAPipeline:
             src = os.path.join(output_folder, filename)
             dst = os.path.join(unclear_folder, filename)
             os.rename(src, dst)
+
+        self.create_verification_report_pdf(
+            confirmed=confirmed_matches,
+            rejected=rejected_matches,
+            unclear=unclear_matches,
+            output_folder=output_folder,
+            prompt=self.clip_prompt,
+        )
+
         
         return {
             "confirmed": confirmed_matches,
