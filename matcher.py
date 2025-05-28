@@ -51,6 +51,7 @@ def mean_matcher(similarities, paths):
 
 selected_imgs = mean_matcher(similarities, paths)
 
+# Wirte as .csv
 with open('matches.csv', mode="w") as file:
     writer = csv.writer(file)
     writer.writerow(selected_imgs)

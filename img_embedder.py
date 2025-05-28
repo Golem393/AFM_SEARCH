@@ -1,7 +1,9 @@
-"""Iamge Embedder
+"""Image Embedder
 
 This image embedder embeds images using OpenAI's CLIP model. The embeddings
-are stored in pandas Dataframe and exported in .h5 format
+are stored in pandas Dataframe and exported in .h5 format. 
+Use:
+    python img_embedder.py -image_dir "imgs/" --device "mps"
 
 """
 
@@ -23,18 +25,18 @@ args = parser.parse_args()
 img_dir = args.image_dir
 
 # Load individual path of all images
-print("Collect image paths:...", end='\r')
+print("[INFO] Collect image paths:...", end='\r')
 image_paths = [
             os.path.join(img_dir, img_fname) for img_fname in os.listdir(img_dir)
             if img_fname.lower().endswith(('.png', '.jpeg', '.jpg'))
             ]
-print("Collect image paths: success")
+print("[INFO] Collect image paths: success")
 
 # Load CLIP model and set to inference mode
-print("Load CLIP model:...", end=' \r')
+print("[INFO] Load CLIP model:...", end=' \r')
 clip_model, preprocess_clip = clip.load("ViT-L/14@336px", device=args.device)
 clip_model.eval()
-print("Load CLIP model: success")
+print("[INFO] Load CLIP model: success")
 
 
 # Generate CLIP image embedding for every picture
@@ -56,7 +58,7 @@ def generate_clip_emb(path, device):
         emb /= emb.norm(dim=1, keepdim=True) 
         return emb
 
-print("Generate image embeddings:...")
+print("[INFO] Generate image embeddings:...")
 for idx, path in enumerate(image_paths):
     start = time.perf_counter()
     emb = generate_clip_emb(path, args.device)
@@ -67,10 +69,10 @@ for idx, path in enumerate(image_paths):
     delta_t = end-start
     print(f"{np.round(progress*100,2)}% {np.round(delta_t,3)}s/img", end=' \r')
 
-print("Generate image embeddings: success")
+print("[INFO] Generate image embeddings: success")
 
 # Save image embeddings with image path
-print("Save image embeddings:...", '\r')
+print("[INFO] Save image embeddings:...", '\r')
 df_embs = pd.DataFrame([paths_list, embs]).transpose()
 df_embs.to_hdf("img_embeddings.h5", key="df_embs", mode="w")
-print("Save image embeddings: success")
+print("[INFO] Save image embeddings: success")
