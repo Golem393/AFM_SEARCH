@@ -4,6 +4,8 @@ from PIL import Image
 import os
 import numpy as np
 import shutil
+from matching_algorithms import MeanMatcher, ParetoFrontMatcher
+from keyw_embedder import KeywordEmbedder
 
 class CLIPMatcher:
     def __init__(self, image_folder, prompt, model="ViT-L/14@336px", top_k=10):
@@ -60,6 +62,9 @@ class CLIPMatcher:
         return np.load(self.embedding_file), np.load(self.filename_file)
     
     def get_text_features(self):
+        #keywordEmbedder = KeywordEmbedder(self.prompt, device=self.device)
+        #self.keyword_prompt = keywordEmbedder.extract_keywords()
+        #text_tokens = clip.tokenize(self.keyword_prompt).to(self.device) TODO: Use keyword embedder
         text_tokens = clip.tokenize([self.prompt]).to(self.device)
         with torch.no_grad():
             text_features = self.model.encode_text(text_tokens).float()
@@ -72,8 +77,11 @@ class CLIPMatcher:
             image_embeddings, image_filenames = self.load_embeddings()
         else:
             image_embeddings, image_filenames = self.compute_embeddings()
-        
-        # Get text features
+
+        matcher = MeanMatcher(image_embeddings, self.get_text_features())
+        selected_imgs = matcher.match(image_filenames)
+
+        ''' Get text features
         text_features = self.get_text_features()
         
         # Compute similarities
@@ -81,30 +89,32 @@ class CLIPMatcher:
         similarities = similarities.squeeze()
         
         # Get top indices
-        top_indices = np.argsort(similarities)[::-1][:self.top_k]
+        top_indices = np.argsort(similarities)[::-1][:self.top_k] '''
         
         # Print results
         print(f"\nTop {self.top_k} most similar images for: \"{self.prompt}\" using {self.model_name}\n")
-        for i, idx in enumerate(top_indices):
-            print(f"{i+1:2d}. {image_filenames[idx]:30s} | Similarity: {similarities[idx]:.4f}")
-        
+        for i in range(len(selected_imgs)):
+            #print(f"{i+1:2d}. {selected_imgs[i]:30s} | Similarity: {similarities[i]:.4f}")
+            print(f"{i+1:2d}. {selected_imgs[i]:30s}")
+
         # Create output folder
         if os.path.exists(self.output_folder):
             shutil.rmtree(self.output_folder)
         os.makedirs(self.output_folder)
         
         # Copy top images
-        for idx in top_indices:
-            src = os.path.join(self.image_folder, image_filenames[idx])
-            dst = os.path.join(self.output_folder, image_filenames[idx])
+        for idx in range(len(selected_imgs)):
+            src = os.path.join(self.image_folder, selected_imgs[idx])
+            dst = os.path.join(self.output_folder, selected_imgs[idx])
             shutil.copy(src, dst)
         
         # Save scores
         score_file = os.path.join(self.output_folder, "scores.txt")
+        similarities = np.zeros(len(selected_imgs))
         with open(score_file, "w") as f:
-            for idx in top_indices:
-                fname = image_filenames[idx]
-                score = similarities[idx]
+            for idx in range(len(selected_imgs)):
+                fname = selected_imgs[idx]
+                score = 0 #similarities[idx] TODO
                 f.write(f"{fname}\t{score:.4f}\n")
         
-        return [image_filenames[idx] for idx in top_indices], [similarities[idx] for idx in top_indices]
+        return [selected_imgs[idx] for idx in range(len(selected_imgs))], [similarities[idx] for idx in range(len(selected_imgs))]

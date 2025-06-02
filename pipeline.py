@@ -141,7 +141,7 @@ class CLIPLLaVAPipeline:
         }
 
 if __name__ == "__main__":
-    prompt = "a stone golem with a red gem in its chest"
+    prompt = "rock and sand"
     # Example usage
     pipeline = CLIPLLaVAPipeline(
         image_folder="Thailand/image",
