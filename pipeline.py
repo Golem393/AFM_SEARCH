@@ -1,5 +1,6 @@
 import os
 from clip_matcher import CLIPMatcher
+from git_matcher import GitMatcher
 from llava_runner import LLaVAVerifier
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -10,6 +11,8 @@ class CLIPLLaVAPipeline:
                  clip_model="ViT-L/14@336px", top_k=10, llava_model="liuhaotian/llava-v1.5-7b"):
         self.image_folder = image_folder
         self.clip_prompt = clip_prompt
+        self.git_prompt = clip_prompt
+        self.git_model = "microsoft/git-large"
         self.verification_prompt = verification_prompt
         self.clip_model = clip_model
         self.top_k = top_k
@@ -67,8 +70,16 @@ class CLIPLLaVAPipeline:
             model=self.clip_model,
             top_k=self.top_k
         )
+        """git_matcher = GitMatcher(
+            image_folder=self.image_folder,
+            prompt=self.git_prompt,
+            model=self.git_model,
+            top_k=self.top_k
+        )"""
         top_files, top_scores = clip_matcher.find_top_matches()
         output_folder = clip_matcher.output_folder
+        #top_files, top_scores = clip_matcher.find_top_matches()
+        #output_folder = clip_matcher.output_folder
         
         # Step 2: Verify matches with LLaVA
         print("\nVerifying matches with LLaVA...")
@@ -141,7 +152,7 @@ class CLIPLLaVAPipeline:
         }
 
 if __name__ == "__main__":
-    prompt = "rock and sand"
+    prompt = "car and sand"
     # Example usage
     pipeline = CLIPLLaVAPipeline(
         image_folder="Thailand/image",
