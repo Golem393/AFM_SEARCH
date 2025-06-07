@@ -5,7 +5,7 @@ import os
 import numpy as np
 import shutil
 from matching_algorithms import MeanMatcher, ParetoFrontMatcher
-from keyw_embedder import KeywordEmbedder
+from keyword_extractor import KeyWordExtractor
 
 class CLIPMatcher:
     def __init__(self, image_folder, prompt, model="ViT-L/14@336px", top_k=10):
@@ -62,10 +62,10 @@ class CLIPMatcher:
         return np.load(self.embedding_file), np.load(self.filename_file)
     
     def get_text_features(self):
-        #keywordEmbedder = KeywordEmbedder(self.prompt, device=self.device)
-        #self.keyword_prompt = keywordEmbedder.extract_keywords()
-        #text_tokens = clip.tokenize(self.keyword_prompt).to(self.device) TODO: Use keyword embedder
-        text_tokens = clip.tokenize([self.prompt]).to(self.device)
+        keywordExtractor = KeyWordExtractor()
+        keywords = keywordExtractor(self.prompt, device=self.device)
+        text_tokens = clip.tokenize(keywords).to(self.device) 
+        # text_tokens = clip.tokenize([self.prompt]).to(self.device)
         with torch.no_grad():
             text_features = self.model.encode_text(text_tokens).float()
             text_features /= text_features.norm(dim=-1, keepdim=True)
