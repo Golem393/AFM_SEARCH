@@ -40,6 +40,7 @@ class ParetoFrontMatcher():
         crit2 = np.any(s[:,:,np.newaxis].repeat(s.shape[0], axis=-1) > s.T, axis=1)
         # (crit1 and crit2) = True
         domination_mat = np.all(np.array([crit1,crit2]), axis=0)
+        print(domination_mat.shape)
 
         return domination_mat
     
@@ -70,5 +71,5 @@ class ParetoFrontMatcher():
     
     def match(self, paths):
         fronts = self.__get_pareto_fronts()
-        idcs = fronts[0]
+        idcs = np.concatenate((fronts[0], fronts[1], fronts[2]))
         return [paths[idx] for idx in idcs]
