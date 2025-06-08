@@ -8,11 +8,11 @@ from matching_algorithms import MeanMatcher, ParetoFrontMatcher
 from keyword_extractor import KeyWordExtractor
 
 class CLIPMatcher:
-    def __init__(self, image_folder, prompt, model="ViT-L/14@336px", top_k=10):
+    def __init__(self, image_folder, keywextractor, top_k, model="ViT-L/14@336px"):
         self.image_folder = image_folder
-        self.prompt = prompt
         self.model_name = model
-        self.top_k = top_k
+        self.keywextractor = keywordextractor # Can be non to just use the prompt w/o keyword extraction
+        self.top_k = top_k # only display top k matches
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         
         # Validate model
@@ -31,6 +31,14 @@ class CLIPMatcher:
         self.embedding_file = os.path.join(self.base_folder, f"{self.model_name_safe}_embeddings.npy")
         self.filename_file = os.path.join(self.base_folder, f"{self.model_name_safe}_filenames.npy")
         self.output_folder = os.path.join(self.base_folder, f"{self.prompt_name_safe}_{self.model_name_safe}_top_matches")
+
+        # Check if image embeddings already exist:
+        # If exist: Load embeddings from disk to memory to improve runtime in benchmarks. (Otherwise have to be loaded to disk for every retrieval request)
+        if os.path.exists(self.embedding_file) and os.path.exists(self.filename_file):
+            self.image_embeddings, self.filepaths = self.load_embeddings()
+        # If not exist: compute embedding ans 
+        else:
+            self.image_embeddings, self.filepaths = self.compute_embeddings()
         
     def compute_embeddings(self):
         print("Computing image embeddings...")
@@ -61,38 +69,27 @@ class CLIPMatcher:
         print("Loading cached embeddings...")
         return np.load(self.embedding_file), np.load(self.filename_file)
     
-    def get_text_features(self):
-        keywordExtractor = KeyWordExtractor()
-        keywords = keywordExtractor(self.prompt, device=self.device)
-        text_tokens = clip.tokenize(keywords).to(self.device) 
+    def get_text_features(self, prompt):
+        
+        # If no keyword extractor is given to the CLIPMatcher instance, the whole prompt will be used for retrieval
+        if self.keywordextractor is not None:
+            keywordExtractor = self.keywordextractor
+            prompt = keywordExtractor.extract(prompt, device=self.device)
+
+        text_tokens = clip.tokenize(prompt).to(self.device) 
         # text_tokens = clip.tokenize([self.prompt]).to(self.device)
         with torch.no_grad():
             text_features = self.model.encode_text(text_tokens).float()
             text_features /= text_features.norm(dim=-1, keepdim=True)
-            return text_features.cpu().numpy()
+            
+        return text_features.cpu().numpy()
     
-    def find_top_matches(self):
-        # Load or compute embeddings
-        if os.path.exists(self.embedding_file) and os.path.exists(self.filename_file):
-            image_embeddings, image_filenames = self.load_embeddings()
-        else:
-            image_embeddings, image_filenames = self.compute_embeddings()
-
-        matcher = MeanMatcher(image_embeddings, self.get_text_features())
-        selected_imgs = matcher.match(image_filenames)
-
-        ''' Get text features
-        text_features = self.get_text_features()
-        
-        # Compute similarities
-        similarities = image_embeddings @ text_features.T
-        similarities = similarities.squeeze()
-        
-        # Get top indices
-        top_indices = np.argsort(similarities)[::-1][:self.top_k] '''
+    def find_top_matches(self, prompt):
+        matcher = MeanMatcher(self.image_embeddings, self.get_text_features(prompt))
+        selected_imgs = matcher.match(self.filepaths)[:self.top_k]
         
         # Print results
-        print(f"\nTop {self.top_k} most similar images for: \"{self.prompt}\" using {self.model_name}\n")
+        print(f"\nTop {self.top_k} most similar images for: \"{prompt}\" using {self.model_name}\n")
         for i in range(len(selected_imgs)):
             #print(f"{i+1:2d}. {selected_imgs[i]:30s} | Similarity: {similarities[i]:.4f}")
             print(f"{i+1:2d}. {selected_imgs[i]:30s}")
@@ -108,13 +105,15 @@ class CLIPMatcher:
             dst = os.path.join(self.output_folder, selected_imgs[idx])
             shutil.copy(src, dst)
         
-        # Save scores
+        # Save scores 
+        #TODO: matching algorithm do not yet support this feature
         score_file = os.path.join(self.output_folder, "scores.txt")
         similarities = np.zeros(len(selected_imgs))
         with open(score_file, "w") as f:
             for idx in range(len(selected_imgs)):
                 fname = selected_imgs[idx]
-                score = 0 #similarities[idx] TODO
+                score = 0 # TODO:
                 f.write(f"{fname}\t{score:.4f}\n")
         
-        return [selected_imgs[idx] for idx in range(len(selected_imgs))], [similarities[idx] for idx in range(len(selected_imgs))]
+        # TODO: Just return selected images, maybe datatype check (List vs. numpy array)?
+        return [selected_img[idx] for idx in range(len(selected_imgs))], [similarities[idx] for idx in range(len(selected_imgs))]

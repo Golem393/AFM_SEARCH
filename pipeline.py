@@ -7,16 +7,16 @@ from PIL import Image
 import math
 
 class CLIPLLaVAPipeline:
-    def __init__(self, image_folder, clip_prompt, verification_prompt, 
+    def __init__(self, image_folder, verification_prompt, 
                  clip_model="ViT-L/14@336px", top_k=10, llava_model="liuhaotian/llava-v1.5-7b"):
         self.image_folder = image_folder
-        self.clip_prompt = clip_prompt
-        self.git_prompt = clip_prompt
+        self.git_prompt = "" # prompt removed from __init__ to improve runtime
         self.git_model = "microsoft/git-large"
         self.verification_prompt = verification_prompt
         self.clip_model = clip_model
         self.top_k = top_k
         self.llava_model = llava_model
+        self.clip_matcher = CLIPMatcher(image_folder, None, top_k, clip_model) # load CLIP Model into memory at instantiation
 
     def create_verification_report_pdf(self, *, confirmed, rejected, unclear, output_folder, prompt, pdf_path="verification_results.pdf"):
         def load_images(filenames, folder):
@@ -61,22 +61,18 @@ class CLIPLLaVAPipeline:
         plt.close()
         print(f"PDF report saved at: {pdf_output_path}")
         
-    def run(self):
+    def run(self, prompt, benchmark_mode):
         # Step 1: Run CLIP matcher to find top matches
         print("Running CLIP matcher...")
-        clip_matcher = CLIPMatcher(
-            image_folder=self.image_folder,
-            prompt=self.clip_prompt,
-            model=self.clip_model,
-            top_k=self.top_k
-        )
+        
         """git_matcher = GitMatcher(
             image_folder=self.image_folder,
             prompt=self.git_prompt,
             model=self.git_model,
             top_k=self.top_k
         )"""
-        top_files, top_scores = clip_matcher.find_top_matches()
+        
+        top_files, top_scores = self.clip_matcher.find_top_matches(prompt)
         output_folder = clip_matcher.output_folder
         #top_files, top_scores = clip_matcher.find_top_matches()
         #output_folder = clip_matcher.output_folder
@@ -103,45 +99,47 @@ class CLIPLLaVAPipeline:
             else:
                 unclear_matches.append(filename)
         
-        # Print summary
-        print("\n=== Results Summary ===")
-        print(f"Total matches from CLIP: {len(top_files)}")
-        print(f"Confirmed by LLaVA: {len(confirmed_matches)}")
-        print(f"Rejected by LLaVA: {len(rejected_matches)}")
-        print(f"Unclear results: {len(unclear_matches)}")
-        
-        # Create subfolders for confirmed and rejected matches
-        confirmed_folder = os.path.join(output_folder, "confirmed")
-        rejected_folder = os.path.join(output_folder, "rejected")
-        unclear_folder = os.path.join(output_folder, "unclear")
-        
-        os.makedirs(confirmed_folder, exist_ok=True)
-        os.makedirs(rejected_folder, exist_ok=True)
-        os.makedirs(unclear_folder, exist_ok=True)
-        
-        # Move files to appropriate folders
-        for filename in confirmed_matches:
-            src = os.path.join(output_folder, filename)
-            dst = os.path.join(confirmed_folder, filename)
-            os.rename(src, dst)
-        
-        for filename in rejected_matches:
-            src = os.path.join(output_folder, filename)
-            dst = os.path.join(rejected_folder, filename)
-            os.rename(src, dst)
+        # Avoid creating and reports in benchmark use case
+        if not benchmark_mode:
+            # Print summary
+            print("\n=== Results Summary ===")
+            print(f"Total matches from CLIP: {len(top_files)}")
+            print(f"Confirmed by LLaVA: {len(confirmed_matches)}")
+            print(f"Rejected by LLaVA: {len(rejected_matches)}")
+            print(f"Unclear results: {len(unclear_matches)}")
             
-        for filename in unclear_matches:
-            src = os.path.join(output_folder, filename)
-            dst = os.path.join(unclear_folder, filename)
-            os.rename(src, dst)
+            # Create subfolders for confirmed and rejected matches
+            confirmed_folder = os.path.join(output_folder, "confirmed")
+            rejected_folder = os.path.join(output_folder, "rejected")
+            unclear_folder = os.path.join(output_folder, "unclear")
+            
+            os.makedirs(confirmed_folder, exist_ok=True)
+            os.makedirs(rejected_folder, exist_ok=True)
+            os.makedirs(unclear_folder, exist_ok=True)
+            
+            # Move files to appropriate folders
+            for filename in confirmed_matches:
+                src = os.path.join(output_folder, filename)
+                dst = os.path.join(confirmed_folder, filename)
+                os.rename(src, dst)
+            
+            for filename in rejected_matches:
+                src = os.path.join(output_folder, filename)
+                dst = os.path.join(rejected_folder, filename)
+                os.rename(src, dst)
+                
+            for filename in unclear_matches:
+                src = os.path.join(output_folder, filename)
+                dst = os.path.join(unclear_folder, filename)
+                os.rename(src, dst)
 
-        self.create_verification_report_pdf(
-            confirmed=confirmed_matches,
-            rejected=rejected_matches,
-            unclear=unclear_matches,
-            output_folder=output_folder,
-            prompt=self.clip_prompt,
-        )
+            self.create_verification_report_pdf(
+                confirmed=confirmed_matches,
+                rejected=rejected_matches,
+                unclear=unclear_matches,
+                output_folder=output_folder,
+                prompt=prompt,
+            )
 
         
         return {
@@ -156,10 +154,9 @@ if __name__ == "__main__":
     # Example usage
     pipeline = CLIPLLaVAPipeline(
         image_folder="Thailand/image",
-        clip_prompt=prompt,
         verification_prompt=f"Does this image show a {prompt}? (answer with 'yes' or 'no')",
         clip_model="ViT-L/14@336px",
         top_k=10
     )
     
-    results = pipeline.run()
+    results = pipeline.run(prompt)

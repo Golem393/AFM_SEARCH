@@ -5,7 +5,7 @@ from transformers import DistilBertForTokenClassification, DistilBertTokenizerFa
 import torch
 
 class KeyWordExtractor():
-    def __init__(self, tokenizer_path: str, model_path):
+    def __init__(self, tokenizer_path: str, model_path: str):
         self.model = DistilBertForTokenClassification.from_pretrained(model_path)
         self.tokenizer = DistilBertTokenizerFast.from_pretrained(tokenizer_path)
     
@@ -23,15 +23,15 @@ class KeyWordExtractor():
         model.eval()
         tokenizer = self.tokenizer
 
-        input = tokenizer(input, 
-                          truncation=True, 
+        input_tokenized = tokenizer(input, 
+                          truncation=True,
                           padding="max_length", 
                           max_length=32, 
                           return_tensors='pt',
                           add_special_tokens=False)
         
-        input_token = input['input_ids'].to(device)
-        attn_mask = input['attention_mask'].to(device)
+        input_token = input_tokenized['input_ids'].to(device)
+        attn_mask = input_tokenized['attention_mask'].to(device)
 
         with torch.no_grad():
             prediction = model(input_token, attn_mask)
@@ -59,4 +59,4 @@ class KeyWordExtractor():
                                      skip_special_tokens=True, 
                                      clean_up_tokenization_spaces=True) for group in groups]
 
-        return keywords
+        return keywords if keywords else input
