@@ -6,6 +6,7 @@ import numpy as np
 import shutil
 from matching_algorithms import MeanMatcher, ParetoFrontMatcher
 from keyw_embedder import KeywordEmbedder
+import requests
 
 class CLIPMatcher:
     def __init__(self, image_folder, prompt, model="ViT-L/14@336px", top_k=10):
@@ -14,14 +15,16 @@ class CLIPMatcher:
         self.model_name = model
         self.top_k = top_k
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.server_url = "http://localhost:5000"
         
+        """
         # Validate model
         available_models = clip.available_models()
         if self.model_name not in available_models:
             raise ValueError(f"Model '{self.model_name}' is not available. Choose from: {available_models}")
         
         # Load model
-        self.model, self.preprocess = clip.load(self.model_name, device=self.device)
+        self.model, self.preprocess = clip.load(self.model_name, device=self.device)"""
         
         # Prepare file and folder names
         self.model_name_safe = self.model_name.replace("/", "_")
@@ -31,7 +34,21 @@ class CLIPMatcher:
         self.embedding_file = os.path.join(self.base_folder, f"{self.model_name_safe}_embeddings.npy")
         self.filename_file = os.path.join(self.base_folder, f"{self.model_name_safe}_filenames.npy")
         self.output_folder = os.path.join(self.base_folder, f"{self.prompt_name_safe}_{self.model_name_safe}_top_matches")
-        
+
+    def get_image_embedding(self, image_path):
+        response = requests.post(
+            f"{self.server_url}/clip/embed_image",
+            json={"image_path": image_path}
+        )
+        return np.array(response.json()['result'])
+
+    def get_text_features(self):
+        response = requests.post(
+            f"{self.server_url}/clip/embed_text",
+            json={"text": self.prompt}
+        )
+        return np.array(response.json()['result'])
+    
     def compute_embeddings(self):
         print("Computing image embeddings...")
         image_embeddings = []
@@ -41,12 +58,9 @@ class CLIPMatcher:
             if filename.lower().endswith((".jpg", ".jpeg", ".png")):
                 image_path = os.path.join(self.image_folder, filename)
                 try:
-                    image = self.preprocess(Image.open(image_path)).unsqueeze(0).to(self.device)
-                    with torch.no_grad():
-                        image_feature = self.model.encode_image(image).float()
-                        image_feature /= image_feature.norm(dim=-1, keepdim=True)
-                        image_embeddings.append(image_feature.cpu().numpy())
-                        image_filenames.append(filename)
+                    image_feature = self.get_image_embedding(image_path)
+                    image_embeddings.append(image_feature)
+                    image_filenames.append(filename)
                 except Exception as e:
                     print(f"Failed to process {filename}: {e}")
 
@@ -60,16 +74,6 @@ class CLIPMatcher:
     def load_embeddings(self):
         print("Loading cached embeddings...")
         return np.load(self.embedding_file), np.load(self.filename_file)
-    
-    def get_text_features(self):
-        #keywordEmbedder = KeywordEmbedder(self.prompt, device=self.device)
-        #self.keyword_prompt = keywordEmbedder.extract_keywords()
-        #text_tokens = clip.tokenize(self.keyword_prompt).to(self.device) TODO: Use keyword embedder
-        text_tokens = clip.tokenize([self.prompt]).to(self.device)
-        with torch.no_grad():
-            text_features = self.model.encode_text(text_tokens).float()
-            text_features /= text_features.norm(dim=-1, keepdim=True)
-            return text_features.cpu().numpy()
     
     def find_top_matches(self):
         # Load or compute embeddings
