@@ -61,7 +61,7 @@ class CLIPLLaVAPipeline:
         plt.close()
         print(f"PDF report saved at: {pdf_output_path}")
         
-    def run(self, prompt, benchmark_mode):
+    def run(self, prompt, benchmark_mode=False):
         # Step 1: Run CLIP matcher to find top matches
         print("Running CLIP matcher...")
         
@@ -73,7 +73,7 @@ class CLIPLLaVAPipeline:
         )"""
         
         top_files, top_scores = self.clip_matcher.find_top_matches(prompt)
-        output_folder = clip_matcher.output_folder
+        output_folder = self.clip_matcher.output_folder
         #top_files, top_scores = clip_matcher.find_top_matches()
         #output_folder = clip_matcher.output_folder
         
@@ -150,13 +150,13 @@ class CLIPLLaVAPipeline:
         }
 
 if __name__ == "__main__":
-    prompt = "car and sand"
+    prompt = "dogs plying in the park"
     # Example usage
     pipeline = CLIPLLaVAPipeline(
-        image_folder="Thailand/image",
+        image_folder="/usr/prakt/s0122/afm/dataset/Flicker8k_Dataset",
         verification_prompt=f"Does this image show a {prompt}? (answer with 'yes' or 'no')",
         clip_model="ViT-L/14@336px",
-        top_k=10
+        top_k=20
     )
     
     results = pipeline.run(prompt)

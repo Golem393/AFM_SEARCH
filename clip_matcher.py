@@ -11,7 +11,7 @@ class CLIPMatcher:
     def __init__(self, image_folder, keywextractor, top_k, model="ViT-L/14@336px"):
         self.image_folder = image_folder
         self.model_name = model
-        self.keywextractor = keywordextractor # Can be non to just use the prompt w/o keyword extraction
+        self.keywextractor = keywordextractor # Can be none to just use the prompt w/o keyword extraction
         self.top_k = top_k # only display top k matches
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         
@@ -25,12 +25,11 @@ class CLIPMatcher:
         
         # Prepare file and folder names
         self.model_name_safe = self.model_name.replace("/", "_")
-        self.prompt_name_safe = self.prompt.replace(" ", "_")
         self.base_folder = os.path.join(self.image_folder, "..")
         
         self.embedding_file = os.path.join(self.base_folder, f"{self.model_name_safe}_embeddings.npy")
         self.filename_file = os.path.join(self.base_folder, f"{self.model_name_safe}_filenames.npy")
-        self.output_folder = os.path.join(self.base_folder, f"{self.prompt_name_safe}_{self.model_name_safe}_top_matches")
+        self.output_folder = os.path.join(self.base_folder, f"{self.model_name_safe}_top_matches")
 
         # Check if image embeddings already exist:
         # If exist: Load embeddings from disk to memory to improve runtime in benchmarks. (Otherwise have to be loaded to disk for every retrieval request)
@@ -116,4 +115,4 @@ class CLIPMatcher:
                 f.write(f"{fname}\t{score:.4f}\n")
         
         # TODO: Just return selected images, maybe datatype check (List vs. numpy array)?
-        return [selected_img[idx] for idx in range(len(selected_imgs))], [similarities[idx] for idx in range(len(selected_imgs))]
+        return [selected_imgs[idx] for idx in range(len(selected_imgs))], [similarities[idx] for idx in range(len(selected_imgs))]
