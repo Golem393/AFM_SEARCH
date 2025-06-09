@@ -8,13 +8,19 @@ from keyw_embedder import KeywordEmbedder
 import requests
 
 class CLIPMatcher:
-    def __init__(self, image_folder, prompt, top_k=10):
+    def __init__(self, 
+                 image_folder, 
+                 embedding_folder, 
+                 prompt, 
+                 top_k=10
+                 
+                 ):
         self.image_folder = image_folder
+        self.embedding_folder = embedding_folder
         self.prompt = prompt
         self.top_k = top_k
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.server_url = "http://localhost:5000"
-        
         """
         # Validate model
         available_models = clip.available_models()
@@ -30,9 +36,16 @@ class CLIPMatcher:
 
         model_name = requests.get("http://localhost:5000/clip/model_name").json()['clip_model_name']
         model_name_safe = model_name.replace("/", "_")
-        self.embedding_file = os.path.join(self.base_folder, f"{model_name_safe}_embeddings.npy")
-        self.filename_file = os.path.join(self.base_folder, f"{model_name_safe}_filenames.npy")
-        self.output_folder = os.path.join(self.base_folder, f"{self.prompt_name_safe}_{model_name_safe}_top_matches")
+        self.embedding_file = os.path.join(self.embedding_folder, f"{model_name_safe}_embeddings.npy")
+        self.filename_file = os.path.join(self.embedding_folder, f"{model_name_safe}_filenames.npy")
+        self.output_folder = os.path.join(self.embedding_folder, f"{self.prompt_name_safe}_{model_name_safe}_top_matches")
+        
+        # Load or compute embeddings
+        if os.path.exists(self.embedding_file) and os.path.exists(self.filename_file):
+            self.image_embeddings, self.image_filenames = self.load_embeddings()
+        else:
+            self.image_embeddings, self.image_filenames = self.compute_embeddings()
+        
 
     def get_image_embedding(self, image_path):
         response = requests.post(
@@ -75,14 +88,8 @@ class CLIPMatcher:
         return np.load(self.embedding_file), np.load(self.filename_file)
     
     def find_top_matches(self):
-        # Load or compute embeddings
-        if os.path.exists(self.embedding_file) and os.path.exists(self.filename_file):
-            image_embeddings, image_filenames = self.load_embeddings()
-        else:
-            image_embeddings, image_filenames = self.compute_embeddings()
-
-        matcher = MeanMatcher(image_embeddings, self.get_text_features())
-        selected_imgs = matcher.match(image_filenames)
+        matcher = MeanMatcher(self.image_embeddings, self.get_text_features())
+        selected_imgs = matcher.match(self.image_filenames)
 
         ''' Get text features
         text_features = self.get_text_features()
@@ -94,30 +101,5 @@ class CLIPMatcher:
         # Get top indices
         top_indices = np.argsort(similarities)[::-1][:self.top_k] '''
         
-        # Print results
-        print(f"\nTop {self.top_k} most similar images for: \"{self.prompt}\" using CLIP\n")
-        for i in range(len(selected_imgs)):
-            #print(f"{i+1:2d}. {selected_imgs[i]:30s} | Similarity: {similarities[i]:.4f}")
-            print(f"{i+1:2d}. {selected_imgs[i]:30s}")
-
-        # Create output folder
-        if os.path.exists(self.output_folder):
-            shutil.rmtree(self.output_folder)
-        os.makedirs(self.output_folder)
-        
-        # Copy top images
-        for idx in range(len(selected_imgs)):
-            src = os.path.join(self.image_folder, selected_imgs[idx])
-            dst = os.path.join(self.output_folder, selected_imgs[idx])
-            shutil.copy(src, dst)
-        
-        # Save scores
-        score_file = os.path.join(self.output_folder, "scores.txt")
         similarities = np.zeros(len(selected_imgs))
-        with open(score_file, "w") as f:
-            for idx in range(len(selected_imgs)):
-                fname = selected_imgs[idx]
-                score = 0 #similarities[idx] TODO
-                f.write(f"{fname}\t{score:.4f}\n")
-        
         return [selected_imgs[idx] for idx in range(len(selected_imgs))], [similarities[idx] for idx in range(len(selected_imgs))]

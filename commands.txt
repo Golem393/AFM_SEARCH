@@ -1,5 +1,5 @@
 salloc --nodes=1 --cpus-per-task=4 --mem=32G \
-       --gres=gpu:1,VRAM:24G --time=04:00:00 \
+       --gres=gpu:1,VRAM:24G --time=08:00:00 \
        --partition=PRACT --qos=practical_course
 
 python3 test.py

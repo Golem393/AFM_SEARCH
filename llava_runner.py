@@ -29,7 +29,7 @@ class LLaVAVerifier:
                     }
                 )
                 results[filename] = response.json()['result']
-                print(response.json()['result'])
+                # print(response.json()['result'])
         return results
     
     def verify_images_batch(self, image_folder: str, prompt: str) -> Dict[str, str]:
@@ -66,7 +66,7 @@ class LLaVAVerifier:
             for i, filename in enumerate(filenames):
                 if image_paths[i] in results:
                     filename_results[filename] = results[image_paths[i]]
-                    print(f"{filename}: {results[image_paths[i]]}")
+                    # print(f"{filename}: {results[image_paths[i]]}")
             
             elapsed = time.time() - start_time
             print(f"Batch processing completed in {elapsed:.2f} seconds")
@@ -81,7 +81,7 @@ class LLaVAVerifier:
         
     @staticmethod
     def extract_verdict(text):
-        print(text)
+        # print(text)
         if text is None:
             return None
         text = text.lower()
