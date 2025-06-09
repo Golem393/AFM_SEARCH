@@ -2,14 +2,9 @@ import sys
 import os
 import requests
 
-from llava.mm_utils import get_model_name_from_path
-from llava.eval.run_llava import eval_model
-
 class LLaVAVerifier:
-    def __init__(self, model_path="liuhaotian/llava-v1.5-7b"):
+    def __init__(self):
         self.server_url = "http://localhost:5000"
-        self.model_path = model_path
-        self.model_name = get_model_name_from_path(model_path)
       
     def verify_images(self, image_folder, prompt):
         results = {}

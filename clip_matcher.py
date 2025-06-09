@@ -1,5 +1,4 @@
 import torch
-import clip
 from PIL import Image
 import os
 import numpy as np
@@ -9,10 +8,9 @@ from keyw_embedder import KeywordEmbedder
 import requests
 
 class CLIPMatcher:
-    def __init__(self, image_folder, prompt, model="ViT-L/14@336px", top_k=10):
+    def __init__(self, image_folder, prompt, top_k=10):
         self.image_folder = image_folder
         self.prompt = prompt
-        self.model_name = model
         self.top_k = top_k
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.server_url = "http://localhost:5000"
@@ -27,13 +25,14 @@ class CLIPMatcher:
         self.model, self.preprocess = clip.load(self.model_name, device=self.device)"""
         
         # Prepare file and folder names
-        self.model_name_safe = self.model_name.replace("/", "_")
         self.prompt_name_safe = self.prompt.replace(" ", "_")
         self.base_folder = os.path.join(self.image_folder, "..")
-        
-        self.embedding_file = os.path.join(self.base_folder, f"{self.model_name_safe}_embeddings.npy")
-        self.filename_file = os.path.join(self.base_folder, f"{self.model_name_safe}_filenames.npy")
-        self.output_folder = os.path.join(self.base_folder, f"{self.prompt_name_safe}_{self.model_name_safe}_top_matches")
+
+        model_name = requests.get("http://localhost:5000/clip/model_name").json()['clip_model_name']
+        model_name_safe = model_name.replace("/", "_")
+        self.embedding_file = os.path.join(self.base_folder, f"{model_name_safe}_embeddings.npy")
+        self.filename_file = os.path.join(self.base_folder, f"{model_name_safe}_filenames.npy")
+        self.output_folder = os.path.join(self.base_folder, f"{self.prompt_name_safe}_{model_name_safe}_top_matches")
 
     def get_image_embedding(self, image_path):
         response = requests.post(
@@ -96,7 +95,7 @@ class CLIPMatcher:
         top_indices = np.argsort(similarities)[::-1][:self.top_k] '''
         
         # Print results
-        print(f"\nTop {self.top_k} most similar images for: \"{self.prompt}\" using {self.model_name}\n")
+        print(f"\nTop {self.top_k} most similar images for: \"{self.prompt}\" using CLIP\n")
         for i in range(len(selected_imgs)):
             #print(f"{i+1:2d}. {selected_imgs[i]:30s} | Similarity: {similarities[i]:.4f}")
             print(f"{i+1:2d}. {selected_imgs[i]:30s}")

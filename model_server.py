@@ -4,6 +4,7 @@ from llava.mm_utils import get_model_name_from_path
 from llava.eval.run_llava import eval_model
 from flask import Flask, request, jsonify
 from concurrent.futures import Future
+from transformers import AutoProcessor, AutoModelForCausalLM
 
 import threading
 import queue
@@ -17,13 +18,16 @@ clip_preprocess = None
 clip_device = None
 llava_model = None
 llava_model_name = None
+git_model = None
+git_processor = None
 
 # Request queues
 clip_queue = queue.Queue()
 llava_queue = queue.Queue()
+git_queue = queue.Queue()
 
 def initialize_models():
-    global clip_model, clip_preprocess, clip_device, llava_model, llava_model_name
+    global clip_model, clip_preprocess, clip_device, llava_model, llava_model_name, git_processor, git_model
     
     # Initialize CLIP
     clip_device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -35,7 +39,10 @@ def initialize_models():
     llava_model_path = "liuhaotian/llava-v1.5-7b"
     print("Loading LLaVA model...")
     llava_model_name = get_model_name_from_path(llava_model_path)
-    # Note: Actual LLaVA initialization might need to happen in the worker thread
+
+    #Initialize GIT
+    git_processor = AutoProcessor.from_pretrained("microsoft/git-large")
+    git_model = AutoModelForCausalLM.from_pretrained("microsoft/git-large").to("cuda")
 
 def clip_worker():
     while True:
@@ -81,6 +88,35 @@ def llava_worker():
             task['future'].set_exception(e)
         finally:
             llava_queue.task_done()
+
+def git_worker():
+    while True:
+        task = git_queue.get()
+        if task is None:
+            break
+        try:
+            image_path = task['image_path']
+            image = Image.open(image_path).convert("RGB")
+            inputs = git_processor(images=image, return_tensors="pt").to("cuda")
+            generated_ids = git_model.generate(**inputs, max_length=50)
+            caption = git_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+            task['future'].set_result(caption)
+        except Exception as e:
+            task['future'].set_exception(e)
+        finally:
+            git_queue.task_done()
+
+@app.route('/git/caption', methods=['POST'])
+def caption_image():
+    data = request.json
+    image_path = data['image_path']
+    future = Future()
+    git_queue.put({
+        'image_path': image_path,
+        'future': future
+    })
+    return jsonify({'result': future.result()})
+
 
 @app.route('/clip/embed_image', methods=['POST'])
 def embed_image():
@@ -133,6 +169,18 @@ def verify_image():
         return jsonify({'result': result})
     except Exception as e:
         return jsonify({'result': str(e)}), 500
+    
+@app.route('/clip/model_name', methods=['GET'])
+def get_clip_model_name():
+    return jsonify({'clip_model_name': "ViT-L/14@336px"})
+
+@app.route('/llava/model_name', methods=['GET'])
+def get_llava_model_name():
+    return jsonify({'llava_model_name': llava_model_name})
+
+@app.route('/git/model_name', methods=['GET'])
+def get_git_model_name():
+    return jsonify({'git_model_name': git_model.name_or_path})
 
 if __name__ == '__main__':
     initialize_models()
@@ -140,5 +188,6 @@ if __name__ == '__main__':
     # Start worker threads
     threading.Thread(target=clip_worker, daemon=True).start()
     threading.Thread(target=llava_worker, daemon=True).start()
+    threading.Thread(target=git_worker, daemon=True).start()
     
     app.run(host='0.0.0.0', port=5000)

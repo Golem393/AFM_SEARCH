@@ -3,29 +3,36 @@ import torch
 import numpy as np
 import shutil
 from PIL import Image
-from transformers import AutoProcessor, AutoModelForCausalLM
 from matching_algorithms import MeanMatcher, ParetoFrontMatcher
+import requests
 
 class GitMatcher:
-    def __init__(self, image_folder, prompt, model = "microsoft/git-large", top_k=10):
+    def __init__(self, image_folder, prompt, top_k=10):
         self.image_folder = image_folder
         self.prompt = prompt
-        self.model_name = model
         self.top_k = top_k
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        # Load model and processor
-        self.processor = AutoProcessor.from_pretrained(self.model_name)
-        self.model = AutoModelForCausalLM.from_pretrained(self.model_name).to(self.device)
-
         # Prepare file and folder names
-        self.model_name_safe = self.model_name.replace("/", "_")
+        model_name = requests.get("http://localhost:5000/git/model_name").json()['git_model_name']
+        model_name_safe = model_name.replace("/", "_")
         self.prompt_name_safe = self.prompt.replace(" ", "_")
         self.base_folder = os.path.join(self.image_folder, "..")
 
-        self.embedding_file = os.path.join(self.base_folder, f"{self.model_name_safe}_embeddings.npy")
-        self.filename_file = os.path.join(self.base_folder, f"{self.model_name_safe}_filenames.npy")
-        self.output_folder = os.path.join(self.base_folder, f"{self.prompt_name_safe}_{self.model_name_safe}_top_matches")
+        self.embedding_file = os.path.join(self.base_folder, f"{model_name_safe}_embeddings.npy")
+        self.filename_file = os.path.join(self.base_folder, f"{model_name_safe}_filenames.npy")
+        self.output_folder = os.path.join(self.base_folder, f"{self.prompt_name_safe}_{model_name_safe}_top_matches")
+
+    def compute_caption_from_server(self, image_path):
+        try:
+            response = requests.post("http://localhost:5000/git/caption", json={
+                "image_path": image_path
+            })
+            response.raise_for_status()
+            return response.json()['result']
+        except Exception as e:
+            print(f"Error generating caption for {image_path}: {e}")
+            return None
 
     def compute_embeddings(self):
         print("Computing image captions...")
@@ -36,12 +43,10 @@ class GitMatcher:
             if filename.lower().endswith((".jpg", ".jpeg", ".png")):
                 image_path = os.path.join(self.image_folder, filename)
                 try:
-                    image = Image.open(image_path).convert("RGB")
-                    inputs = self.processor(images=image, return_tensors="pt").to(self.device)
-                    generated_ids = self.model.generate(**inputs, max_length=50)
-                    caption = self.processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
-                    image_embeddings.append(caption)
-                    image_filenames.append(filename)
+                    caption = self.compute_caption_from_server(image_path)
+                    if caption is not None:
+                        image_embeddings.append(caption)
+                        image_filenames.append(filename)
                 except Exception as e:
                     print(f"Failed to process {filename}: {e}")
 
@@ -75,7 +80,7 @@ class GitMatcher:
         selected_scores = [similarities[i] for i in top_indices]
 
         # Print results
-        print(f"\nTop {self.top_k} most similar images for: \"{self.prompt}\" using {self.model_name}\n")
+        print(f"\nTop {self.top_k} most similar images for: \"{self.prompt}\" using GIT\n")
         for i, (img, score) in enumerate(zip(selected_imgs, selected_scores)):
             print(f"{i+1:2d}. {img:30s} | Similarity: {score:.4f}")
 

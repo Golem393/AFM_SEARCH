@@ -7,16 +7,12 @@ from PIL import Image
 import math
 
 class CLIPLLaVAPipeline:
-    def __init__(self, image_folder, clip_prompt, verification_prompt, 
-                 clip_model="ViT-L/14@336px", top_k=10, llava_model="liuhaotian/llava-v1.5-7b"):
+    def __init__(self, image_folder, clip_prompt, verification_prompt, top_k=10):
         self.image_folder = image_folder
         self.clip_prompt = clip_prompt
         self.git_prompt = clip_prompt
-        self.git_model = "microsoft/git-large"
         self.verification_prompt = verification_prompt
-        self.clip_model = clip_model
         self.top_k = top_k
-        self.llava_model = llava_model
 
     def create_verification_report_pdf(self, *, confirmed, rejected, unclear, output_folder, prompt, pdf_path="verification_results.pdf"):
         def load_images(filenames, folder):
@@ -67,23 +63,21 @@ class CLIPLLaVAPipeline:
         clip_matcher = CLIPMatcher(
             image_folder=self.image_folder,
             prompt=self.clip_prompt,
-            model=self.clip_model,
             top_k=self.top_k
         )
-        """git_matcher = GitMatcher(
+        git_matcher = GitMatcher(
             image_folder=self.image_folder,
             prompt=self.git_prompt,
-            model=self.git_model,
             top_k=self.top_k
-        )"""
+        )
         top_files, top_scores = clip_matcher.find_top_matches()
         output_folder = clip_matcher.output_folder
-        #top_files, top_scores = clip_matcher.find_top_matches()
-        #output_folder = clip_matcher.output_folder
+        #top_files, top_scores = git_matcher.find_top_matches()
+        #output_folder = git_matcher.output_folder
         
         # Step 2: Verify matches with LLaVA
         print("\nVerifying matches with LLaVA...")
-        llava = LLaVAVerifier(model_path=self.llava_model)
+        llava = LLaVAVerifier()
         verification_results = llava.verify_images(
             image_folder=output_folder,
             prompt=self.verification_prompt
@@ -152,13 +146,12 @@ class CLIPLLaVAPipeline:
         }
 
 if __name__ == "__main__":
-    prompt = "car and sand"
+    prompt = "the city of Phuket"
     # Example usage
     pipeline = CLIPLLaVAPipeline(
         image_folder="Thailand/image",
         clip_prompt=prompt,
         verification_prompt=f"Does this image show a {prompt}? (answer with 'yes' or 'no')",
-        clip_model="ViT-L/14@336px",
         top_k=10
     )
     
