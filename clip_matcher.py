@@ -4,7 +4,6 @@ import os
 import numpy as np
 import shutil
 from matching_algorithms import MeanMatcher, ParetoFrontMatcher
-from keyw_embedder import KeywordEmbedder
 import requests
 
 class CLIPMatcher:
@@ -82,7 +81,7 @@ class CLIPMatcher:
             image_embeddings, image_filenames = self.compute_embeddings()
 
         matcher = MeanMatcher(image_embeddings, self.get_text_features())
-        selected_imgs = matcher.match(image_filenames)
+        selected_imgs = matcher.match(image_filenames)[:self.top_k]
 
         ''' Get text features
         text_features = self.get_text_features()
