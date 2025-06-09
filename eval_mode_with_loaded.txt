@@ -1,0 +1,64 @@
+README: Insert the following in LLaVA/llava/eval/run_llava.py
+
+def eval_model_with_loaded(prompt, image_path, llava_model, llava_tokenizer, llava_image_processor):
+    # Use global tokenizer/model/image_processor
+
+    disable_torch_init()
+
+    model_name = llava_model.config._name_or_path
+
+    # Add image tokens to prompt
+    image_token_se = DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN
+    if IMAGE_PLACEHOLDER in prompt:
+        if llava_model.config.mm_use_im_start_end:
+            qs = re.sub(IMAGE_PLACEHOLDER, image_token_se, prompt)
+        else:
+            qs = re.sub(IMAGE_PLACEHOLDER, DEFAULT_IMAGE_TOKEN, prompt)
+    else:
+        if llava_model.config.mm_use_im_start_end:
+            qs = image_token_se + "\n" + prompt
+        else:
+            qs = DEFAULT_IMAGE_TOKEN + "\n" + prompt
+
+    # Choose conversation template
+    if "llama-2" in model_name.lower():
+        conv_mode = "llava_llama_2"
+    elif "mistral" in model_name.lower():
+        conv_mode = "mistral_instruct"
+    elif "v1.6-34b" in model_name.lower():
+        conv_mode = "chatml_direct"
+    elif "v1" in model_name.lower():
+        conv_mode = "llava_v1"
+    elif "mpt" in model_name.lower():
+        conv_mode = "mpt"
+    else:
+        conv_mode = "llava_v0"
+
+    conv = conv_templates[conv_mode].copy()
+    conv.append_message(conv.roles[0], qs)
+    conv.append_message(conv.roles[1], None)
+    prompt_str = conv.get_prompt()
+
+    # Prepare image
+    image = load_images([image_path])[0]
+    image_tensor = process_images([image], llava_image_processor, llava_model.config).to(llava_model.device, dtype=torch.float16)
+    image_sizes = [image.size]
+
+    # Tokenize prompt
+    input_ids = tokenizer_image_token(prompt_str, llava_tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt").unsqueeze(0).cuda()
+
+    with torch.inference_mode():
+        output_ids = llava_model.generate(
+            input_ids,
+            images=image_tensor,
+            image_sizes=image_sizes,
+            do_sample=False,
+            temperature=0,
+            top_p=None,
+            num_beams=1,
+            max_new_tokens=10,
+            use_cache=True
+        )
+
+    output_text = llava_tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0].strip()
+    return output_text
