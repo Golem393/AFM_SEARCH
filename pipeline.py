@@ -78,7 +78,7 @@ class CLIPLLaVAPipeline:
         # Step 2: Verify matches with LLaVA
         print("\nVerifying matches with LLaVA...")
         llava = LLaVAVerifier()
-        verification_results = llava.verify_images(
+        verification_results = llava.verify_images_batch(
             image_folder=output_folder,
             prompt=self.verification_prompt
         )
