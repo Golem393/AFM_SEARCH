@@ -65,11 +65,11 @@ class CLIPLLaVAPipeline:
             prompt=self.clip_prompt,
             top_k=self.top_k
         )
-        git_matcher = GitMatcher(
+        """git_matcher = GitMatcher(
             image_folder=self.image_folder,
             prompt=self.git_prompt,
             top_k=self.top_k
-        )
+        )"""
         top_files, top_scores = clip_matcher.find_top_matches()
         output_folder = clip_matcher.output_folder
         #top_files, top_scores = git_matcher.find_top_matches()
