@@ -1,5 +1,7 @@
 LLaVA/
-eval_coco/
+eval_coco/benchmarks
+eval_coco/embeddings
+
 # python.gitignore template by github.com/github/gitignore
 # Byte-compiled / optimized / DLL files
 __pycache__/

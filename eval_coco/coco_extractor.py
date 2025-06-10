@@ -9,6 +9,12 @@ class COCOCaptionExtractor:
     def __init__(self, 
                  annotations_path:Path, 
                  images_path:Path):
+        """
+        Init COCOCaptionExtractor
+        Args:
+            annotations_path: Path to COCO annotations directory
+            images_path: Path to COCO images directory
+        """
         self.annotations_path = Path(annotations_path)
         self.images_path = Path(images_path)
         
@@ -20,6 +26,26 @@ class COCOCaptionExtractor:
         print(f"Loading COCO annotations from {captions_file}...")
         self.coco = COCO(str(captions_file))
         print(f"Loaded {len(self.coco.imgs)} images with annotations")
+    
+    def len_files(self):
+        """
+        Get number of images in the dataset
+        Returns:
+            Number of images
+        """
+        return len(self.coco.imgs)
+    
+    def len_captions(self):
+        """
+        Get total number of captions in the dataset
+        Returns:
+            Total number of captions
+        """
+        total_captions = 0
+        print(self.coco.imgs.keys())
+        for img_id in self.coco.imgs.keys():
+            total_captions += len(self.coco.getAnnIds(imgIds=img_id))
+        return total_captions
     
     def extract_captions(self, 
                          max_images=None,):
@@ -131,6 +157,23 @@ class COCOCaptionExtractor:
     
     def get_sample_data(self, n_samples=10):
         return self.extract_captions(max_images=n_samples)
+    
+    def get_all_filepaths(self):
+        return sorted([str(self.images_path / img_info['file_name']) for img_info in self.coco.imgs.values()])
+    
+    def get_all_captions(self):
+        """
+        Get all captions in the dataset
+        
+        Returns:
+            Dict of all captions for each filepath
+        """
+        return {
+            self.coco.imgs[img_id]['file_name']: [ann['caption'] 
+                                                  for ann in self.coco.loadAnns(self.coco.getAnnIds(imgIds=img_id))]
+            for img_id in self.coco.imgs.keys()
+        }
+    
 
 def main():
     # Configuration

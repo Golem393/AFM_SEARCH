@@ -2,6 +2,15 @@ salloc --nodes=1 --cpus-per-task=4 --mem=32G \
        --gres=gpu:1,VRAM:24G --time=08:00:00 \
        --partition=PRACT --qos=practical_course
 
+
+run --jobid=1376782 --pty bash
+
 python3 test.py
 ls /storage/group/dataset_mirrors/01_incoming
+
 scancel <jobid>
+
+sacct -> runningn jobs
+
+
+

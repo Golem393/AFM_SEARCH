@@ -1,23 +1,19 @@
-import torch
+from matching_algorithms import MeanMatcher
 from PIL import Image
-import os
 import numpy as np
-import shutil
-from matching_algorithms import MeanMatcher, ParetoFrontMatcher
-from keyw_embedder import KeywordEmbedder
 import requests
+import torch
+import shutil
+import os
 
 class CLIPMatcher:
     def __init__(self, 
                  image_folder, 
                  embedding_folder, 
-                 prompt, 
                  top_k=10
-                 
                  ):
         self.image_folder = image_folder
         self.embedding_folder = embedding_folder
-        self.prompt = prompt
         self.top_k = top_k
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.server_url = "http://localhost:5000"
@@ -30,15 +26,10 @@ class CLIPMatcher:
         # Load model
         self.model, self.preprocess = clip.load(self.model_name, device=self.device)"""
         
-        # Prepare file and folder names
-        self.prompt_name_safe = self.prompt.replace(" ", "_")
-        self.base_folder = os.path.join(self.image_folder, "..")
-
         model_name = requests.get("http://localhost:5000/clip/model_name").json()['clip_model_name']
         model_name_safe = model_name.replace("/", "_")
         self.embedding_file = os.path.join(self.embedding_folder, f"{model_name_safe}_embeddings.npy")
         self.filename_file = os.path.join(self.embedding_folder, f"{model_name_safe}_filenames.npy")
-        self.output_folder = os.path.join(self.embedding_folder, f"{self.prompt_name_safe}_{model_name_safe}_top_matches")
         
         # Load or compute embeddings
         if os.path.exists(self.embedding_file) and os.path.exists(self.filename_file):
@@ -54,10 +45,10 @@ class CLIPMatcher:
         )
         return np.array(response.json()['result'])
 
-    def get_text_features(self):
+    def get_text_features(self, prompt):
         response = requests.post(
             f"{self.server_url}/clip/embed_text",
-            json={"text": self.prompt}
+            json={"text": prompt}
         )
         return np.array(response.json()['result'])
     
@@ -87,9 +78,9 @@ class CLIPMatcher:
         print("Loading cached embeddings...")
         return np.load(self.embedding_file), np.load(self.filename_file)
     
-    def find_top_matches(self):
-        matcher = MeanMatcher(self.image_embeddings, self.get_text_features())
-        selected_imgs = matcher.match(self.image_filenames)
+    def find_top_matches(self, prompt):
+        matcher = MeanMatcher(self.image_embeddings, self.get_text_features(prompt))
+        selected_imgs = matcher.match(self.image_filenames)[:self.top_k]
 
         ''' Get text features
         text_features = self.get_text_features()

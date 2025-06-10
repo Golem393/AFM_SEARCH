@@ -1,5 +1,5 @@
 # AFM_SEARCH
-use python 3.10 in your venv/conda
+use python 3.10 in your conda
 #### Activate cuda & compiler: 
 ```
 module load cuda/12.1.0

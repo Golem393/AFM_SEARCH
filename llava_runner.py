@@ -1,5 +1,6 @@
 import sys
 import os
+from pathlib import Path
 import requests
 import time
 from typing import Dict
@@ -16,11 +17,14 @@ class LLaVAVerifier:
         self.session.mount('http://', adapter)
         self.session.mount('https://', adapter)
       
-    def verify_images(self, image_folder, prompt):
+    def verify_images(self, img_path, images, prompt):
         results = {}
-        for filename in os.listdir(image_folder):
+        for filename in images:
+            print(f"llava filename: {filename}")
             if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-                image_path = os.path.join(image_folder, filename)
+                image_path = str(img_path)+"/"+filename
+                print(f"llava path: {image_path}")
+                
                 response = requests.post(
                     f"{self.server_url}/llava/verify",
                     json={
@@ -28,6 +32,7 @@ class LLaVAVerifier:
                         "prompt": prompt
                     }
                 )
+                print(f"llava response: {response.json()['result']}")
                 results[filename] = response.json()['result']
                 # print(response.json()['result'])
         return results
