@@ -1,187 +1,199 @@
 from sklearn.metrics.pairwise import cosine_similarity
-from typing import List, Optional, Union
+from sentence_transformers import SentenceTransformer
+from coco_extractor import COCOCaptionExtractor
+from typing import List, Optional, Dict
 from pathlib import Path
 import numpy as np
 import h5py
 
-# Assuming you have these functions from your original post
-# def save_embeddings_hdf5(...): ...
-# def load_embeddings_hdf5(...): ...
+
+def save_embeddings(extractor: COCOCaptionExtractor, 
+                    embedder:SentenceTransformer, 
+                    embedding_file:Path,
+                    )->None:
+    """
+    Saves caption embeddings to a HDF5 file (flat structure).
+    
+    Args:        
+        extractor (COCOCaptionExtractor): An instance of the COCOCaptionExtractor to get captions and
+        embedder (SentenceTransformer): An instance of SentenceTransformer to encode captions.
+        save_path (Path): The directory where the HDF5 file will be saved.      
+        
+    Returns:
+        None: The function saves the embeddings to a h5 file and does not return anything.
+    """
+    all_captions = extractor.get_all_captions()
+    
+    filename = embedding_file / "caption_embeddings.h5"
+    
+    print(f"Starting to save embeddings to file: {filename}")
+    with h5py.File(filename, 'w') as f:
+        # Iterate through all image filepaths provided by the extractor
+        for i, path_obj in enumerate(extractor.get_all_filepaths()):
+            if (i + 1) % 1000 == 0:
+                print(f"Processed {i + 1} images...")
+
+            # The key for captions = filename 
+            caption_key = Path(path_obj).name 
+            
+            # Encode captions of current image
+            embeddings = [embedder.encode(caption) for caption in all_captions[caption_key]]
+            
+            # Convert to a NumPy array
+            embeddings_array = np.array(embeddings, dtype=np.float32)
+            
+            # Use the filename as the dataset key, ensuring a flat structure.
+            f.create_dataset(caption_key, data=embeddings_array, compression='gzip')
+    
+    print(f"\nFinished saving. All embeddings keyed by the imagename are in {filename}")
+      
+        
+def load_embeddings(embedding_file_path:Path, 
+                    image_paths:List[Path]=None,
+                    )->Dict[str, np.ndarray]:
+    """
+    Loads embeddings from a flat HDF5 file.
+    
+    Args:
+        save_path (Path): Path of the HDF5 file.
+        image_paths (list, optional): A list of specific image paths/filenames to load.
+                                      If None, all embeddings are loaded. Defaults to None.
+    
+    Returns:
+        dict: A dictionary mapping image filenames to their embedding arrays.
+    """
+    
+    if not embedding_file_path.exists():
+        raise FileNotFoundError(f"HDF5 file not found at: {embedding_file_path}")
+
+    result = {}
+    with h5py.File(embedding_file_path, 'r') as f:
+        if image_paths is None:
+            # Load all embeddings
+            print(f"Loading all {len(f.keys())} images with each 5 embeddings from {embedding_file_path}...")
+            for key in f.keys():
+                result[key] = f[key][:] # Read data into memory
+        else:
+            # Load only the specified embeddings
+            print(f"Loading {len(image_paths)} specific images with each 5 embeddings from {embedding_file_path}...")
+            for path in image_paths:
+                key = Path(path).name  # Extract filename to use as the key
+                if key in f:
+                    result[key] = f[key][:]
+                else:
+                    print(f"Warning: Key for image '{key}' not found in HDF5 file.")
+    
+    print(f"Successfully loaded {len(result)} images with each 5 embeddings into memory.")
+    return result
 
 
-def find_similar_images_by_score_aggregation(
+def find_similar_images(
     query_image_paths: List[str],
-    h5_file_path: Union[str, Path],
+    all_embeddings: Dict[str, np.ndarray],
     search_in_paths: Optional[List[str]] = None,
-    aggregation: str = 'mean',  # 'mean' or 'median'
+    aggregation: str = 'median', # 'mean' or 'median'
     threshold: Optional[float] = None,
     top_percent: Optional[float] = None,
-    top_k: Optional[int] = None,
-    captions_per_image: int = 5
-) -> List[str]:
+    return_scores: bool = False,
+) -> List[str]|List[tuple[str, float]]:
     """
-    Finds similar images by first calculating all cross-caption similarities
-    and then aggregating these scores.
+    Finds similar images from a pre-loaded dictionary of embeddings.
 
     Args:
-        query_image_paths (List[str]): List of image paths to use as the query.
-        h5_file_path (Union[str, Path]): Path to the HDF5 file with embeddings.
-        search_in_paths (Optional[List[str]], optional): List of image paths to search in. 
-            If None, searches all images found via the extractor. Defaults to None.
-        extractor (optional): Your extractor object, required to get all filepaths if 
-            search_in_paths is None. Defaults to None.
-        aggregation (str, optional): How to aggregate the similarity scores. 
-            'mean' or 'median'. Defaults to 'mean'.
-        threshold (Optional[float], optional): If top_percent is None, returns images with a
-            score above this threshold. Defaults to None.
-        top_percent (Optional[float], optional): Returns the top X percent of images. 
-            This takes precedence over threshold. Defaults to None.
-        top_k (Optional[int], optional): Limits the final number of returned image paths.
-        captions_per_image (int, optional): Number of captions for each image. Defaults to 5.
+        query_image_paths (List[str]): List of image paths/filenames to use as the query.
+        all_embeddings (Dict[str, np.ndarray]): The pre-loaded dictionary mapping image
+                                                 filenames to their (captions, dim) embedding arrays.
+        search_in_paths (Optional[List[str]], optional): A specific list of image filenames
+            to search within. If None, searches all images in the `all_embeddings` dict.
+        aggregation (str, optional): How to aggregate similarity scores ('mean' or 'median').
+        threshold (Optional[float], optional): If set, returns images with a score above this.
+        top_percent (Optional[float], optional): Returns the top X percent of images.
+        return_scores (bool, optional): If True, returns a list of tuples (filename, score).
 
     Returns:
-        List[str]: A sorted list of the most similar image paths (filenames).
+        List[str]: A sorted list of the most similar image filenames.
     """
+    CAPTIONS_PER_IMAGE = 5
     if top_percent is not None and threshold is not None:
         print("Warning: Both top_percent and threshold are set. top_percent will be used.")
     
     if aggregation not in ['mean', 'median']:
         raise ValueError("aggregation must be 'mean' or 'median'")
 
-    # Load embeddings form the HDF5 file
-    with h5py.File(h5_file_path, 'r') as f:
-        # Determine the search space
-        if search_in_paths is None:
-            # Use all keys from the H5 file as the search space
-            all_h5_keys = list(f.keys())
-            search_filenames = all_h5_keys
-        else:
-            search_filenames = [Path(p).name for p in search_in_paths]
-
-        # Load query embeddings
-        query_embeddings_list = []
-        for path in query_image_paths:
-            if path in f:
-                query_embeddings_list.append(f[filename][:])
-            else:
-                print(f"Warning: Query image {filename} not found in HDF5 file. Skipping.")
-        
-        if not query_embeddings_list:
-            return [] # No valid query images found
-        
-        # Consolidate all query embeddings into one large array
-        query_embeddings = np.vstack(query_embeddings_list) # Shape: (num_queries * 5, embedding_dim)
-
-        # Load search embeddings
-        search_embeddings_list = []
-        valid_search_paths = []
-        for filename in search_filenames:
-            if filename in f:
-                # To avoid comparing an image to itself in the search results
-                if filename not in [Path(p).name for p in query_image_paths]:
-                    search_embeddings_list.append(f[filename][:])
-                    valid_search_paths.append(filename)
-
-        if not search_embeddings_list:
-            return [] # No valid search images found
-
-        # Consolidate all search embeddings into one large array
-        search_embeddings = np.vstack(search_embeddings_list) # Shape: (num_searches * 5, embedding_dim)
-
-    # --- 2. Calculate Similarity ---
-    # This is the core change. Calculate similarity between ALL individual captions.
-    # The result is a large matrix where cell (i, j) is the similarity between
-    # the i-th query caption and the j-th search caption.
-    # Shape: (num_queries * 5, num_searches * 5)
-    all_sims = cosine_similarity(query_embeddings, search_embeddings)
-
-    # --- 3. Aggregate Scores per Image ---
-    # We now reshape the matrix to group scores by search image and aggregate.
-    num_search_images = len(valid_search_paths)
+    # Separate the pre-loaded data into query and search arrays 
+    query_filenames = {Path(p).name for p in query_image_paths}
     
-    # Reshape to (num_query_captions, num_search_images, captions_per_image)
-    sims_reshaped = all_sims.reshape(query_embeddings.shape[0], num_search_images, captions_per_image)
+    # Get query embeddings from the pre-loaded dictionary
+    query_embeddings_list = []
+    for q_filename in query_filenames:
+        if q_filename in all_embeddings:
+            query_embeddings_list.append(all_embeddings[q_filename][:5])
+        else:
+            print(f"Warning: Query image '{q_filename}' not found in pre-loaded embeddings. Skipping.")
+    
+    if not query_embeddings_list:
+        print("Error: No valid query images were found in the provided embeddings.")
+        return []
+    
+    # Shape: (num_queries * 5, dim)
+    query_embeddings = np.vstack(query_embeddings_list)
 
-    # Now, aggregate across the query captions (axis 0) and the search image's own captions (axis 2)
-    # to get a single score per search image.
+    # Get the search space 
+    if search_in_paths is None:
+        search_pool_filenames = set(all_embeddings.keys())
+    else:
+        search_pool_filenames = {Path(p).name for p in search_in_paths}
+
+    # # Avoid self-comparison
+    search_filenames = search_pool_filenames #- query_filenames
+
+    # Get search embeddings from the pre-loaded dictionary
+    search_embeddings_list = []
+    valid_search_paths = []
+    for s_filename in search_filenames:
+        if s_filename in all_embeddings:
+            # load the first 5 embeddings for each search image!!! SOME HAVE MORE THAN 5!!!!!! PAIN
+            search_embeddings_list.append(all_embeddings[s_filename][:5])
+            valid_search_paths.append(s_filename)
+
+    if not search_embeddings_list:
+        print("Error: No valid images found in the search space.")
+        return []
+
+    # Create the giant search matrix: (num_images * 5, dim)
+    search_embeddings = np.vstack(search_embeddings_list)
+    
+    # Shape: (num_queries * 5, num_searches * 5)
+    print(query_embeddings.shape)
+    print(search_embeddings.shape)
+    all_sims = cosine_similarity(query_embeddings, search_embeddings)
+    print(all_sims.shape)
+
+    # Reshape and Aggregate
+    num_search_images = len(valid_search_paths)
+        
+    sims_reshaped = all_sims.T
+    print(sims_reshaped)
+    
+    
     if aggregation == 'mean':
-        image_scores = np.mean(sims_reshaped, axis=(0, 2))
+        image_scores = np.mean(np.mean(sims_reshaped.reshape(num_search_images, CAPTIONS_PER_IMAGE, CAPTIONS_PER_IMAGE), 
+                               axis=2), 
+                               axis=1)
+        
+        print(image_scores.shape)
     else: # median
-        # np.median doesn't accept a tuple of axes, so we reshape and calculate
-        # This is equivalent to taking the median of all 25 (or M*5*5) scores for each search image.
-        image_scores = np.median(sims_reshaped.reshape(-1, num_search_images), axis=0)
-
-    # --- 4. Filter and Sort Results ---
+        image_scores = np.median(np.median(sims_reshaped.reshape(num_search_images, CAPTIONS_PER_IMAGE, CAPTIONS_PER_IMAGE), 
+                                 axis=2),
+                                 axis=1)
+    
+    # Filter and Sort Results 
     path_score_pairs = sorted(zip(valid_search_paths, image_scores), key=lambda x: x[1], reverse=True)
 
-    # Filter based on top_percent or threshold
-    if top_percent is not None:
-        num_results = max(1, int(len(path_score_pairs) * top_percent / 100))
-        filtered_pairs = path_score_pairs[:num_results]
-    elif threshold is not None:
+    if threshold is not None:
         filtered_pairs = [(path, sim) for path, sim in path_score_pairs if sim >= threshold]
-    else:
-        filtered_pairs = path_score_pairs
+    else: # Use top_percent
+        num_to_keep = max(1, int(len(path_score_pairs) * top_percent / 100))
+        filtered_pairs = path_score_pairs[:num_to_keep]
 
-    # Extract paths and apply top_k limit
-    result_paths = [path for path, _ in filtered_pairs]
-
-    if top_k is not None:
-        return result_paths[:top_k]
-    
-    return result_paths
-
-# A simplified helper for the common case of a single query image
-def find_similar_images_single_query(
-    query_image_path: str,
-    h5_file_path: Union[str, Path],
-    **kwargs
-) -> List[str]:
-    """Helper function for a single query image."""
-    return find_similar_images_by_score_aggregation([query_image_path], h5_file_path, **kwargs)
-
-
-# --- USAGE EXAMPLES ---
-"""
-# Assume these are defined:
-# PATH_EMBEDDINGS = Path("./embeddings")
-# extractor = ... # your data extractor object
-
-h5_path = PATH_EMBEDDINGS / "caption_embeddings.h5"
-
-# Example 1: Find the top 10 most similar images to 'query.jpg' using the mean of similarity scores
-similar_images = find_similar_images_single_query(
-    query_image_path="query.jpg",
-    h5_file_path=h5_path,
-    extractor=extractor,
-    aggregation='mean',
-    top_k=10
-)
-print(f"Top 10 similar images (mean score): {similar_images}")
-
-
-# Example 2: Find images with a median similarity score greater than 0.75
-similar_images = find_similar_images_single_query(
-    query_image_path="another_query.jpg",
-    h5_file_path=h5_path,
-    extractor=extractor,
-    aggregation='median',
-    threshold=0.75,
-    top_k=50  # Limit to a max of 50 results even if many pass the threshold
-)
-print(f"Images with median score > 0.75: {similar_images}")
-
-
-# Example 3: Search using multiple query images, finding the top 2% of matches
-search_subset = ["image_001.jpg", "image_002.jpg", ..., "image_500.jpg"]
-similar_images = find_similar_images_by_score_aggregation(
-    query_image_paths=["query1.jpg", "query2.jpg"],
-    h5_file_path=h5_path,
-    search_in_paths=search_subset, # Search only within this subset
-    aggregation='mean',
-    top_percent=2,
-    top_k=20
-)
-print(f"Top 2% of matches from subset: {similar_images}")
-
-"""
+    return filtered_pairs if return_scores else [path for path, _ in filtered_pairs] 

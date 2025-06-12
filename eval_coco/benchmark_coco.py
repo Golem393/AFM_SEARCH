@@ -15,7 +15,7 @@ from pathlib import Path
 #TODO: Validation based on caption embedding similarity -> median (outlier robust)
 #TODO: Caption embedding trashold
 #TODO: rewrite pipeline, clip_matcher, llava
-
+#TODO: use the elbow method to get best threshold  
 
  
 

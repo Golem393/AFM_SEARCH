@@ -1,6 +1,7 @@
 LLaVA/
 eval_coco/benchmarks
 eval_coco/embeddings
+eval_coco/output
 
 # python.gitignore template by github.com/github/gitignore
 # Byte-compiled / optimized / DLL files
