@@ -3,10 +3,8 @@ from caption_embedder import save_embeddings, load_embeddings, find_similar_imag
 import matplotlib.pyplot as plt
 from importlib import reload
 from pathlib import Path
-import caption_embedder
 from PIL import Image
 import random
-import os
 
 
 PATH_ANNOTATIONS = Path("/storage/group/dataset_mirrors/old_common_datasets/coco/annotations")
@@ -32,7 +30,7 @@ def get_random_image_filenames(image_path: Path,
 
 def save_plot_for_query(query_image_filename: str, 
                         results_data: list,
-                        name_addition: str = "",):
+                        name_addition: str = None,):
     """
     Generates a plot of the query image and its search results,
     and saves it to a file in the globally defined PATH_RESULTS directory.
@@ -123,7 +121,7 @@ def save_plot_for_query(query_image_filename: str,
 #%%
 # Load all images This might take up to 300 seconds and use 1.4GB of RAM, but you only do it once.
 print("Loading all embeddings into memory. This may take 300 seconds...")
-preloaded_embeddings = load_embeddings(PATH_FILE_TEST_EMBEDDING)
+preloaded_embeddings = load_embeddings(PATH_FILE_EMBEDDING)
 print("...loading complete!")
 
 
@@ -170,7 +168,15 @@ for img in get_random_image_filenames(PATH_IMAGES, 15, test_set=list(preloaded_e
         top_percent= 10,
         return_scores=True,
     )
-    save_plot_for_query(query_image_filename=img, results_data=results)
+    save_plot_for_query(query_image_filename=img, results_data=results, name_addition="median")
+    results = find_similar_images(
+            query_image_paths=[img],
+            all_embeddings=preloaded_embeddings, # Pass the pre-loaded data
+            aggregation='mean',
+            top_percent= 10,
+            return_scores=True,
+        )
+    save_plot_for_query(query_image_filename=img, results_data=results, name_addition="mean")
 
 
 

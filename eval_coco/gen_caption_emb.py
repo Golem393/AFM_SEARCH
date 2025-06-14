@@ -4,7 +4,7 @@ h5py test with simplified data structure
 #%%
 from sentence_transformers import SentenceTransformer
 from coco_extractor import COCOCaptionExtractor
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Dict
 from pathlib import Path
 import numpy as np
 import h5py
@@ -103,11 +103,16 @@ embedder = SentenceTransformer("all-mpnet-base-v2") #best
 # similarities = embedder.similarity(embeddings, embeddings)
 
 extractor = COCOCaptionExtractor(PATH_ANNOTATIONS, PATH_IMAGES)    
-captions = extractor.get_all_captions()
+captions = extractor.get_all_captions()#[:1000]
+#%%
+import time
+start = time.time()
 
 save_embeddings(extractor, embedder, PATH_EMBEDDINGS)
+
+print(f"Time taken: {time.time() - start:.2f} seconds")
+
 # %%
-import time
 start = time.time()
 all_embeddings = load_embeddings(PATH_EMBEDDINGS)
 print(f"Loaded {len(all_embeddings)} total embeddings.")

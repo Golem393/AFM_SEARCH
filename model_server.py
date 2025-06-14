@@ -6,6 +6,9 @@ from llava.model.builder import load_pretrained_model
 from flask import Flask, request, jsonify
 from concurrent.futures import Future, ThreadPoolExecutor
 from transformers import AutoProcessor, AutoModelForCausalLM
+import os
+import argparse
+
 
 import threading
 import queue
@@ -41,18 +44,18 @@ def initialize_models():
     print("Loading CLIP model...")
     clip_model, clip_preprocess = clip.load(model_name, device=clip_device)
     
-    # Initialize LLaVA
-    llava_model_path = "liuhaotian/llava-v1.5-7b"
-    print("Loading LLaVA model...")
-    llava_model_name = get_model_name_from_path(llava_model_path)
-    llava_tokenizer, llava_model, llava_image_processor, llava_context_len = load_pretrained_model(
-        llava_model_path, None, llava_model_name
-    )
+    # # Initialize LLaVA
+    # llava_model_path = "liuhaotian/llava-v1.5-7b"
+    # print("Loading LLaVA model...")
+    # llava_model_name = get_model_name_from_path(llava_model_path)
+    # llava_tokenizer, llava_model, llava_image_processor, llava_context_len = load_pretrained_model(
+    #     llava_model_path, None, llava_model_name
+    # )
 
     #Initialize GIT
-    print("Loading GIT model...")
-    git_processor = AutoProcessor.from_pretrained("microsoft/git-large")
-    git_model = AutoModelForCausalLM.from_pretrained("microsoft/git-large").to("cuda")
+    # print("Loading GIT model...")
+    # git_processor = AutoProcessor.from_pretrained("microsoft/git-large")
+    # git_model = AutoModelForCausalLM.from_pretrained("microsoft/git-large").to("cuda")
 
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
@@ -222,15 +225,21 @@ def get_git_model_name():
     return jsonify({'git_model_name': git_model.name_or_path})
 
 if __name__ == '__main__':
-    import os
     os.environ['TOKENIZERS_PARALLELISM'] = 'false'
     initialize_models()
     
+    parser = argparse.ArgumentParser(description="Run the model server")
+    parser.add_argument(
+        "--port", type=int, default=5000, help="Port to run the server on"
+    )
+    args = parser.parse_args()
+    port = args.port
+    
     for _ in range(2):
         threading.Thread(target=clip_worker, daemon=True).start()
-    for _ in range(1):
-        threading.Thread(target=llava_worker, daemon=True).start()
-    for _ in range(2):
-        threading.Thread(target=git_worker, daemon=True).start()
+    # for _ in range(1):
+    #     threading.Thread(target=llava_worker, daemon=True).start()
+    # for _ in range(2):
+    #     threading.Thread(target=git_worker, daemon=True).start()
     
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=port)

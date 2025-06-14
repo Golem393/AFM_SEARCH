@@ -92,9 +92,9 @@ def find_similar_images(
     all_embeddings: Dict[str, np.ndarray],
     search_in_paths: Optional[List[str]] = None,
     aggregation: str = 'median', # 'mean' or 'median'
-    threshold: Optional[float] = None,
+    threshold: Optional[float] = 0.35,
     top_percent: Optional[float] = None,
-    return_scores: bool = False,
+    return_scores: bool = True,
 ) -> List[str]|List[tuple[str, float]]:
     """
     Finds similar images from a pre-loaded dictionary of embeddings.
@@ -164,24 +164,19 @@ def find_similar_images(
     search_embeddings = np.vstack(search_embeddings_list)
     
     # Shape: (num_queries * 5, num_searches * 5)
-    print(query_embeddings.shape)
-    print(search_embeddings.shape)
     all_sims = cosine_similarity(query_embeddings, search_embeddings)
-    print(all_sims.shape)
 
     # Reshape and Aggregate
     num_search_images = len(valid_search_paths)
         
     sims_reshaped = all_sims.T
-    print(sims_reshaped)
-    
     
     if aggregation == 'mean':
         image_scores = np.mean(np.mean(sims_reshaped.reshape(num_search_images, CAPTIONS_PER_IMAGE, CAPTIONS_PER_IMAGE), 
                                axis=2), 
                                axis=1)
         
-        print(image_scores.shape)
+        # print(image_scores.shape)
     else: # median
         image_scores = np.median(np.median(sims_reshaped.reshape(num_search_images, CAPTIONS_PER_IMAGE, CAPTIONS_PER_IMAGE), 
                                  axis=2),
@@ -192,7 +187,7 @@ def find_similar_images(
 
     if threshold is not None:
         filtered_pairs = [(path, sim) for path, sim in path_score_pairs if sim >= threshold]
-    else: # Use top_percent
+    else: # Use top_percent just for testing & development
         num_to_keep = max(1, int(len(path_score_pairs) * top_percent / 100))
         filtered_pairs = path_score_pairs[:num_to_keep]
 

@@ -10,13 +10,17 @@ class CLIPMatcher:
     def __init__(self, 
                  image_folder, 
                  embedding_folder, 
-                 top_k=10
+                 top_k=10,
+                 print_progress: bool = False,
+                 port:int=5000,
                  ):
         self.image_folder = image_folder
         self.embedding_folder = embedding_folder
         self.top_k = top_k
+        self.port = port
+        self.print_progress = print_progress
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.server_url = "http://localhost:5000"
+        self.server_url = f"http://localhost:{self.port}"
         """
         # Validate model
         available_models = clip.available_models()
@@ -25,8 +29,9 @@ class CLIPMatcher:
         
         # Load model
         self.model, self.preprocess = clip.load(self.model_name, device=self.device)"""
+        print(f"initializing ClipMatcher with device: {self.device}") if self.print_progress else None
         
-        model_name = requests.get("http://localhost:5000/clip/model_name").json()['clip_model_name']
+        model_name = requests.get(f"http://localhost:{self.port}/clip/model_name").json()['clip_model_name']
         model_name_safe = model_name.replace("/", "_")
         self.embedding_file = os.path.join(self.embedding_folder, f"{model_name_safe}_embeddings.npy")
         self.filename_file = os.path.join(self.embedding_folder, f"{model_name_safe}_filenames.npy")
@@ -36,6 +41,7 @@ class CLIPMatcher:
             self.image_embeddings, self.image_filenames = self.load_embeddings()
         else:
             self.image_embeddings, self.image_filenames = self.compute_embeddings()
+        print(f"Done") if self.print_progress else None
         
 
     def get_image_embedding(self, image_path):
@@ -56,6 +62,8 @@ class CLIPMatcher:
         print("Computing image embeddings...")
         image_embeddings = []
         image_filenames = []
+        i = 0
+        
 
         for filename in os.listdir(self.image_folder):
             if filename.lower().endswith((".jpg", ".jpeg", ".png")):
@@ -66,12 +74,17 @@ class CLIPMatcher:
                     image_filenames.append(filename)
                 except Exception as e:
                     print(f"Failed to process {filename}: {e}")
+                i += 1
+                if i % 1000 == 0 and self.print_progress:
+                    print(f"Processed {i} images...")
 
         image_embeddings = np.vstack(image_embeddings)
         image_filenames = np.array(image_filenames)
 
         np.save(self.embedding_file, image_embeddings)
         np.save(self.filename_file, image_filenames)
+        print(f"Done") if self.print_progress else None
+
         return image_embeddings, image_filenames
     
     def load_embeddings(self):

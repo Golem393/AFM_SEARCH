@@ -1,9 +1,15 @@
 # from sklearn.metrics.pairwise import cosine_similarity
 # from sentence_transformers import SentenceTransformer
 
+import sys
 from coco_extractor import COCOCaptionExtractor
-from pipeline import CLIPLLaVAPipeline
 from datetime import datetime
+from pathlib import Path
+
+# Add the parent directory (AFM_SEARCH) to the Python path
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
+from pipeline import CLIPLLaVAPipeline
 from pathlib import Path
 
     
@@ -20,7 +26,7 @@ def main():
     pipeline = CLIPLLaVAPipeline(
     image_folder=PATH_IMAGES,
     clip_model="ViT-L/14@336px",
-    top_k=10
+    top_k=30
     )   
 
     # init time, indices and recall values

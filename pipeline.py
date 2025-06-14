@@ -34,6 +34,7 @@ class CLIPLLaVAPipeline:
         #     top_k=self.top_k
         # )
         top_files, top_scores = clip_matcher.find_top_matches(prompt)
+        # top_files, top_scores = git_matcher.find_top_matches(prompt)
         # output_folder = clip_matcher.output_folder
         
         # Step 2: Verify matches with LLaVA
