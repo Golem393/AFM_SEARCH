@@ -44,18 +44,18 @@ def initialize_models():
     print("Loading CLIP model...")
     clip_model, clip_preprocess = clip.load(model_name, device=clip_device)
     
-    # # Initialize LLaVA
-    # llava_model_path = "liuhaotian/llava-v1.5-7b"
-    # print("Loading LLaVA model...")
-    # llava_model_name = get_model_name_from_path(llava_model_path)
-    # llava_tokenizer, llava_model, llava_image_processor, llava_context_len = load_pretrained_model(
-    #     llava_model_path, None, llava_model_name
-    # )
+    # Initialize LLaVA
+    llava_model_path = "liuhaotian/llava-v1.5-7b"
+    print("Loading LLaVA model...")
+    llava_model_name = get_model_name_from_path(llava_model_path)
+    llava_tokenizer, llava_model, llava_image_processor, llava_context_len = load_pretrained_model(
+        llava_model_path, None, llava_model_name
+    )
 
-    #Initialize GIT
-    # print("Loading GIT model...")
-    # git_processor = AutoProcessor.from_pretrained("microsoft/git-large")
-    # git_model = AutoModelForCausalLM.from_pretrained("microsoft/git-large").to("cuda")
+    # # Initialize GIT
+    print("Loading GIT model...")
+    git_processor = AutoProcessor.from_pretrained("microsoft/git-large")
+    git_model = AutoModelForCausalLM.from_pretrained("microsoft/git-large").to("cuda")
 
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
@@ -237,9 +237,9 @@ if __name__ == '__main__':
     
     for _ in range(2):
         threading.Thread(target=clip_worker, daemon=True).start()
-    # for _ in range(1):
-    #     threading.Thread(target=llava_worker, daemon=True).start()
-    # for _ in range(2):
-    #     threading.Thread(target=git_worker, daemon=True).start()
+    for _ in range(1):
+        threading.Thread(target=llava_worker, daemon=True).start()
+    for _ in range(2):
+        threading.Thread(target=git_worker, daemon=True).start()
     
     app.run(host='0.0.0.0', port=port)

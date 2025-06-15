@@ -126,7 +126,7 @@ class COCOCaptionExtractor:
         """
         print("Iterating through image-caption pairs...")
         
-        image_ids = list(self.coco.imgs.keys())
+        image_ids = sorted(list(self.coco.imgs.keys()))
         if max_images:
             image_ids = image_ids[:max_images]
         
@@ -173,6 +173,36 @@ class COCOCaptionExtractor:
                                                   for ann in self.coco.loadAnns(self.coco.getAnnIds(imgIds=img_id))]
             for img_id in self.coco.imgs.keys()
         }
+    
+    def get_captions_for_image(self, image_path):
+        """
+        Get captions for a specific image
+        
+        Args:
+            image_path: Path to the image file
+        
+        Returns:
+            List of captions for the image
+        """
+        target_file_name = Path(image_path).name
+        found_img_id = None
+        
+        # Iterate through the images loaded by COCO to find the matching file_name
+        for img_id_candidate, img_info in self.coco.imgs.items():
+            if img_info['file_name'] == target_file_name:
+                found_img_id = img_id_candidate
+                break
+        
+        if found_img_id is None:
+            # If the image file_name is not found in the annotations
+            return []
+        
+        # Get annotation IDs for the found image ID.
+        # self.coco.getAnnIds expects a list of image IDs.
+        ann_ids = self.coco.getAnnIds(imgIds=[found_img_id])
+        anns = self.coco.loadAnns(ann_ids)
+        
+        return [ann['caption'] for ann in anns[:5]]
     
 
 def main():

@@ -10,9 +10,9 @@ import numpy as np
 import h5py
 
 PATH_ANNOTATIONS = Path("/storage/group/dataset_mirrors/old_common_datasets/coco/annotations")
-PATH_EMBEDDINGS = Path("/usr/prakt/s0115/AFM_SEARCH/eval_coco/embeddings")
+PATH_EMBEDDINGS = Path("/embeddings")
 PATH_IMAGES = Path("/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014")
-PATH_RESULTS = Path("eval_coco/benchmark")
+PATH_RESULTS = Path("/benchmark")
 #%%
 def save_embeddings(extractor: COCOCaptionExtractor, 
                     embedder:SentenceTransformer, 

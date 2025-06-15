@@ -183,3 +183,26 @@ for img in get_random_image_filenames(PATH_IMAGES, 15, test_set=list(preloaded_e
 
 #%%
 
+
+
+#%%
+#%%
+from coco_extractor import COCOCaptionExtractor
+import coco_extractor 
+reload(coco_extractor)
+import coco_extractor
+FOLDER_ANNOTATIONS = Path("/storage/group/dataset_mirrors/old_common_datasets/coco/annotations")
+FOLDER_IMAGES = Path("/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014")
+FOLDER_BENCHMARKS = Path("benchmarks/")
+FOLDER_EMBEDDINGS = Path("embeddings/")
+    
+FILE_EMBEDDING = Path("embeddings/caption_embeddings.h5")
+FILE_TEST_EMBEDDING = Path("embeddings/caption_embeddings_1000_test.h5")#
+FILE_PROGRESS = Path('benchmarks/eval_progress.json')
+extractor = COCOCaptionExtractor(FOLDER_ANNOTATIONS, FOLDER_IMAGES)
+
+# %%
+reload(coco_extractor)
+import coco_extractor
+extractor.get_captions_for_image("/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000000025.jpg")
+# %%

@@ -16,8 +16,8 @@ port = args.port
 
 PATH_FOLDER_ANNOTATIONS = Path("/storage/group/dataset_mirrors/old_common_datasets/coco/annotations")
 PATH_FOLDER_IMAGES = Path("/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014")
-PATH_FOLDER_BENCHMARKS = Path("eval_coco/benchmarks")
-PATH_FOLDER_EMBEDDINGS = Path("eval_coco/embeddings")
+PATH_FOLDER_BENCHMARKS = Path("benchmarks/")
+PATH_FOLDER_EMBEDDINGS = Path("embeddings/")
     
 PATH_FILE_EMBEDDING = Path("embeddings/caption_embeddings.h5")
 PATH_FILE_TEST_EMBEDDING = Path("embeddings/caption_embeddings_1000_test.h5")
