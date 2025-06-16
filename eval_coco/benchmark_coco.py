@@ -168,7 +168,7 @@ def main():
                 
                 # pprint(f"merged dict {merged_dict}")
                 
-                matches_both = [filename for filename, score in sorted(merged_dict.items(), key=lambda item: item[1], reverse=True)][:top_k_clip]
+                matches_both = [filename for filename, score in sorted(merged_dict.items(), key=lambda item: item[1], reverse=True)]#[:top_k_clip]
 
                 # matches_diff_to_clip = list(set(matches_both) - set(matches_clip))
                 # pprint(f"both: {matches_both}")
@@ -232,9 +232,7 @@ def main():
             
         results_dict["last_processed_index"] += 1
         
-        if index == 2:
-            break 
-        
+
         
                     
 if __name__ == "__main__":

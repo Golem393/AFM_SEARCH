@@ -206,3 +206,157 @@ reload(coco_extractor)
 import coco_extractor
 extractor.get_captions_for_image("/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000000025.jpg")
 # %%
+
+
+# llava path: /storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000372535.jpg
+# llava response: No
+# llava filename: COCO_train2014_000000471480.jpg
+# llava path: /storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000471480.jpg
+# llava response: No
+# llava filename: COCO_train2014_000000060599.jpg
+# llava path: /storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000060599.jpg
+# llava response: No
+# llava filename: COCO_train2014_000000021253.jpg
+# llava path: /storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000021253.jpg
+# llava response: No
+# llava filename: COCO_train2014_000000320478.jpg
+# llava path: /storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000320478.jpg
+# llava response: No
+# llava filename: COCO_train2014_000000223091.jpg
+# llava path: /storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000223091.jpg
+#%%
+
+
+def show_images(image_paths: list[Path]):
+    """
+    Displays a list of images.
+
+    Args:
+        image_paths (list[Path]): A list of Path objects to images.
+    """
+    num_images = len(image_paths)
+    if num_images == 0:
+        print("No images to display.")
+        return
+
+    # Determine the grid layout
+    if num_images == 1:
+        num_rows, num_cols = 1, 1
+    else:
+        num_cols = int(num_images**0.5)
+        if num_cols == 0:
+            num_cols = 1
+        num_rows = (num_images + num_cols - 1) // num_cols
+
+    fig, ax_array = plt.subplots(num_rows, num_cols, figsize=(num_cols * 3, num_rows * 3), squeeze=False)
+    axes = ax_array.flatten()
+
+    for i, img_path in enumerate(image_paths):
+        if i >= len(axes):
+            break
+        try:
+            img = Image.open(img_path)
+            axes[i].imshow(img)
+            axes[i].axis('off')
+            axes[i].set_title(Path(img_path).name, fontsize=8)
+        except FileNotFoundError:
+            axes[i].axis('off')
+        except Exception as e:
+            axes[i].axis('off')
+
+    # Hide any unused subplots
+    for j in range(num_images, len(axes)):
+        fig.delaxes(axes[j])
+
+    plt.tight_layout()
+    plt.show()
+
+
+img_paths = [
+    
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000372535.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000471480.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000060599.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000021253.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000320478.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000223091.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000076776.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000284342.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000159926.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000382673.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000327539.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000541705.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000579123.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000049283.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000307001.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000503809.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000399154.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000001895.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000280898.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000414738.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000562862.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000529050.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000132528.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000379638.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000161434.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000572923.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000280423.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000457686.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000051474.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000043583.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000402671.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000563437.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000331271.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000366712.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000506377.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000535282.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000500789.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000304332.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000169287.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000142208.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000225878.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000254774.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000011223.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000271373.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000343243.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000461535.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000091234.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000545874.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000452500.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000082909.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000409208.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000357132.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000579571.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000001102.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000545833.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000537231.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000573062.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000431383.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000004239.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000032707.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000018475.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000230971.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000569567.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000170227.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000516812.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000120518.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000401835.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000398070.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000090498.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000030492.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000486227.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000156043.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000418989.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000498090.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000038431.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000218455.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000286061.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000492705.jpg",
+"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000081001.jpg",
+
+    
+    
+]
+print("A person standing on the snow next to a tree.")
+show_images(img_paths)
+# %%
