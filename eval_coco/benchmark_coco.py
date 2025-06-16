@@ -1,3 +1,4 @@
+from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
@@ -9,7 +10,7 @@ from llava_runner import LLaVAVerifier
 from clip_matcher import CLIPMatcher
 from git_matcher import GitMatcher
 from datetime import datetime
-from pathlib import Path
+from pprint import pprint
 import argparse
 import json
 import os
@@ -89,6 +90,15 @@ def main():
     subset = args.subset
     port = args.port
     
+               
+    # init paths, coco extractor and pipeline
+    FOLDER_ANNOTATIONS = Path("/storage/group/dataset_mirrors/old_common_datasets/coco/annotations")
+    FOLDER_IMAGES = Path("/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014")
+    FOLDER_EMBEDDINGS = Path("embeddings/")
+    
+    # init caption embedding for precision ground truth 
+    top_k_clip = 30
+    
     
     # init coco extractor
     coco_extractor = COCOCaptionExtractor(FOLDER_ANNOTATIONS, FOLDER_IMAGES)
@@ -99,38 +109,37 @@ def main():
         preloaded_caption_embeddings = load_embeddings(FILE_EMBEDDING_SUBSET)
         files = sorted(load_list_from_txt(f"subsets/subset_{subset}.txt"))
         
+        clip_matcher = CLIPMatcher(
+            image_folder=FOLDER_IMAGES,
+            embedding_folder=FOLDER_EMBEDDINGS,
+            top_k=top_k_clip,
+            print_progress=False,
+            port=port,
+            subset=files,
+        )
+          
+        git_matcher = GitMatcher(
+            image_folder=FOLDER_IMAGES,
+            embedding_folder= FOLDER_EMBEDDINGS,
+            top_k=top_k_clip,
+            print_progress=False,
+            port=port,
+            subset=files,
+        )
+        
     else:
         FILE_PROGRESS = Path(f'benchmarks/eval_progress_all.json')
         FILE_EMBEDDING = Path("embeddings/caption_embeddings.h5")
         preloaded_caption_embeddings = load_embeddings(FILE_EMBEDDING)
         files = sorted(list(coco_extractor.get_all_filepaths()))
-        
-    # init paths, coco extractor and pipeline
-    FOLDER_ANNOTATIONS = Path("/storage/group/dataset_mirrors/old_common_datasets/coco/annotations")
-    FOLDER_IMAGES = Path("/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014")
-    FOLDER_EMBEDDINGS = Path("embeddings/")
-    
-    
-    # init caption embedding for precision ground truth 
-    top_k_clip = 30
-        
-    clip_matcher = CLIPMatcher(
-        image_folder=FOLDER_IMAGES,
-        embedding_folder=FOLDER_EMBEDDINGS,
-        top_k=top_k_clip,
-        print_progress=False,
-        port=port,
-        subset=files,
+        clip_matcher = CLIPMatcher(
+            image_folder=FOLDER_IMAGES,
+            embedding_folder=FOLDER_EMBEDDINGS,
+            top_k=top_k_clip,
+            print_progress=False,
+            port=port,
         )
-    
-    git_matcher = GitMatcher(
-        image_folder=FOLDER_IMAGES,
-        embedding_folder= FOLDER_EMBEDDINGS,
-        top_k=top_k_clip,
-        print_progress=False,
-        port=port,
-        subset=files,
-        )
+
     
     llava = LLaVAVerifier()
     
@@ -157,9 +166,12 @@ def main():
                 merged_dict = {**dict(zip(matches_clip, scores_clip)), 
                             **dict(zip(matches_git, scores_git))}
                 
-                matches_both = [filename[0] for filename in sorted(merged_dict.items(), key=lambda item: item[1], reverse=True)]
-                # matches_diff_to_clip = list(set(matches_both) - set(matches_clip))
+                # pprint(f"merged dict {merged_dict}")
                 
+                matches_both = [filename for filename, score in sorted(merged_dict.items(), key=lambda item: item[1], reverse=True)][:top_k_clip]
+
+                # matches_diff_to_clip = list(set(matches_both) - set(matches_clip))
+                # pprint(f"both: {matches_both}")
                 results_dict["clip"]["recall@"]["1"] += img_name in matches_clip[:1]
                 results_dict["clip"]["recall@"]["5"] += img_name in matches_clip[:5]
                 results_dict["clip"]["recall@"]["10"] += img_name in matches_clip[:10]
@@ -176,8 +188,7 @@ def main():
                 results_dict["clip+git"]["precision@"]["5"] +=  precision_at_k(ground_truth, matches_both, 5)
                 results_dict["clip+git"]["precision@"]["10"] +=  precision_at_k(ground_truth, matches_both, 10)
                 
-                results_dict["total_captions_processed"] += 1
-                
+                print(f"Does this image show a {caption}? (answer only with 'yes' or 'no' and nothing else!)")
                 
                 # llava return format:{'/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000000009.jpg': 'no',
                 #  '/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000000025.jpg': 'yes'}
@@ -188,6 +199,14 @@ def main():
                 matches_llava_both = [Path(k).name for k, v in matches_llava.items() if v == 'yes']
                 
                 matches_llava_clip = [m for m in matches_llava_both if Path(m[0]).name in matches_clip]
+                
+                # # just clip without git
+                # matches_llava = llava.verify_images(FOLDER_IMAGES, 
+                #                     matches_clip, 
+                #                     f"Does this image show a {caption}? (answer only with 'yes' or 'no' and nothing else!)")
+                
+                # matches_llava_clip = [k for k, v in matches_llava.items() if v == 'Yes']
+                
                 
                 results_dict["clip+llava"]["recall@"]["1"] += img_name in matches_llava_clip[:1]
                 results_dict["clip+llava"]["recall@"]["5"] += img_name in matches_llava_clip[:5]
@@ -211,10 +230,12 @@ def main():
                 print(f"Error processing image {img_name} with caption '{caption}': {e}")
                 continue
             
-        results_dict["last_processed_index"] = index
+        results_dict["last_processed_index"] += 1
         
-        # just for testing early stop
-        break
+        if index == 2:
+            break 
+        
+        
                     
 if __name__ == "__main__":
     main()

@@ -15,7 +15,10 @@ class MeanMatcher():
         criterion = np.percentile(means, 95)
         k = len(means[means >= criterion])
         idcs = np.argsort(means)[::-1][:k]
-        return [paths[idx] for idx in idcs]
+        top_paths = [paths[idx] for idx in idcs]
+        top_similarities = means[idcs].tolist()
+        return top_paths, top_similarities
+
 
 class ParetoFrontMatcher():
     def __init__(self, img_emb, key_emb):

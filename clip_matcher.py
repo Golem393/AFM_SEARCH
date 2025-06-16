@@ -111,17 +111,16 @@ class CLIPMatcher:
     
     def find_top_matches(self, prompt):
         matcher = MeanMatcher(self.image_embeddings, self.get_text_features(prompt))
-        selected_imgs = matcher.match(self.image_filenames)[:self.top_k]
+        selected_imgs, similarities = matcher.match(self.image_filenames)[:self.top_k]
 
-        ''' Get text features
-        text_features = self.get_text_features()
+        # # Get text features
+        # text_features = self.get_text_features()
         
-        # Compute similarities
-        similarities = image_embeddings @ text_features.T
-        similarities = similarities.squeeze()
+        # # Compute similarities
+        # similarities = self.image_embeddings @ text_features.T
+        # similarities = similarities.squeeze()
         
-        # Get top indices
-        top_indices = np.argsort(similarities)[::-1][:self.top_k] '''
+        # # Get top indices
+        # top_indices = np.argsort(similarities)[::-1][:self.top_k] 
         
-        similarities = np.zeros(len(selected_imgs))
-        return [selected_imgs[idx] for idx in range(len(selected_imgs))], [similarities[idx] for idx in range(len(selected_imgs))]
+        return selected_imgs, similarities
