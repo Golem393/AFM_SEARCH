@@ -32,7 +32,7 @@ def open_json_file(file_path)->dict:
             ...,
     }}
     """
-    model_names = ["clip", "clip+git", "clip+llava", "clip+git+llava"]
+    model_names = ["clip", "git", "clip+git", "clip+llava", "git+llava", "clip+git+llava"]
     if os.path.exists(file_path):
         with open(file_path, 'r') as f:
             all_models_progress = json.load(f)
@@ -160,18 +160,32 @@ def main():
             )
         
         for caption in captions:
-            try:
+            # try:
                 matches_clip, scores_clip = clip_matcher.find_top_matches(caption)
                 matches_git, scores_git = git_matcher.find_top_matches(caption)
-                merged_dict = {**dict(zip(matches_clip, scores_clip)), 
-                            **dict(zip(matches_git, scores_git))}
                 
-                # pprint(f"merged dict {merged_dict}")
+                pprint(f"clip matches: {dict(zip(matches_clip, scores_clip))}")
+                pprint(f"git matches: {dict(zip(matches_git, scores_git))}")
                 
-                matches_both = [filename for filename, score in sorted(merged_dict.items(), key=lambda item: item[1], reverse=True)]#[:top_k_clip]
+                # SCORES ARE NOT COMPAREABLE BETWEEN CLIP AND GIT, SO WE CAN NOT MERGE THEM!!!!
+                # merged_dict = {**dict(zip(matches_clip, scores_clip)), 
+                #             **dict(zip(matches_git, scores_git))}
+                
+                # matches_both = [filename for filename, score in sorted(merged_dict.items(), key=lambda item: item[1], reverse=True)]#[:top_k_clip]
 
                 # matches_diff_to_clip = list(set(matches_both) - set(matches_clip))
                 # pprint(f"both: {matches_both}")
+                
+                matches_both = []
+                for i in range(top_k_clip):
+                    matches_both.append(matches_clip[i])
+                    matches_both.append(matches_git[i])
+
+                matches_both = matches_both[:top_k_clip]
+                pprint(f"both: {matches_both}")
+
+
+                    
                 results_dict["clip"]["recall@"]["1"] += img_name in matches_clip[:1]
                 results_dict["clip"]["recall@"]["5"] += img_name in matches_clip[:5]
                 results_dict["clip"]["recall@"]["10"] += img_name in matches_clip[:10]
@@ -179,6 +193,16 @@ def main():
                 results_dict["clip"]["precision@"]["1"] += precision_at_k(ground_truth, matches_clip, 1)
                 results_dict["clip"]["precision@"]["5"] +=  precision_at_k(ground_truth, matches_clip, 5)
                 results_dict["clip"]["precision@"]["10"] +=  precision_at_k(ground_truth, matches_clip, 10)
+                
+                
+                results_dict["git"]["recall@"]["1"] += img_name in matches_git[:1]
+                results_dict["git"]["recall@"]["5"] += img_name in matches_git[:5]
+                results_dict["git"]["recall@"]["10"] += img_name in matches_git[:10]
+                
+                results_dict["git"]["precision@"]["1"] += precision_at_k(ground_truth, matches_git, 1)
+                results_dict["git"]["precision@"]["5"] +=  precision_at_k(ground_truth, matches_git, 5)
+                results_dict["git"]["precision@"]["10"] +=  precision_at_k(ground_truth, matches_git, 10)
+                
                 
                 results_dict["clip+git"]["recall@"]["1"] += img_name in matches_both[:1]
                 results_dict["clip+git"]["recall@"]["5"] += img_name in matches_both[:5]
@@ -200,6 +224,8 @@ def main():
                 
                 matches_llava_clip = [m for m in matches_llava_both if Path(m[0]).name in matches_clip]
                 
+                matches_llava_git = [m for m in matches_llava_both if Path(m[0]).name in matches_git]
+                
                 # # just clip without git
                 # matches_llava = llava.verify_images(FOLDER_IMAGES, 
                 #                     matches_clip, 
@@ -216,6 +242,16 @@ def main():
                 results_dict["clip+llava"]["precision@"]["5"] +=  precision_at_k(ground_truth, matches_llava_clip, 5)
                 results_dict["clip+llava"]["precision@"]["10"] +=  precision_at_k(ground_truth, matches_llava_clip, 10)
                 
+                
+                results_dict["git+llava"]["recall@"]["1"] += img_name in matches_llava_git[:1]
+                results_dict["git+llava"]["recall@"]["5"] += img_name in matches_llava_git[:5]
+                results_dict["git+llava"]["recall@"]["10"] += img_name in matches_llava_git[:10]
+                
+                results_dict["git+llava"]["precision@"]["1"] += precision_at_k(ground_truth, matches_llava_git, 1)
+                results_dict["git+llava"]["precision@"]["5"] +=  precision_at_k(ground_truth, matches_llava_git, 5)
+                results_dict["git+llava"]["precision@"]["10"] +=  precision_at_k(ground_truth, matches_llava_git, 10)
+                
+                
                 results_dict["clip+git+llava"]["recall@"]["1"] += img_name in matches_llava_both[:1]
                 results_dict["clip+git+llava"]["recall@"]["5"] += img_name in matches_llava_both[:5]
                 results_dict["clip+git+llava"]["recall@"]["10"] += img_name in matches_llava_both[:10]
@@ -226,9 +262,9 @@ def main():
                 
                 results_dict["total_captions_processed"] += 1
                 save_json_file(FILE_PROGRESS, results_dict)
-            except Exception as e:
-                print(f"Error processing image {img_name} with caption '{caption}': {e}")
-                continue
+            # except Exception as e:
+            #     print(f"Error processing image {img_name} with caption '{caption}': {e}")
+            #     continue
             
         results_dict["last_processed_index"] += 1
         
