@@ -9,7 +9,9 @@ import h5py
 
 def save_embeddings(extractor: COCOCaptionExtractor, 
                     embedder:SentenceTransformer, 
-                    embedding_file:Path,
+                    embedding_folder:Path,
+                    name_addition:str = None,
+                    subset:List[Path]=None,
                     )->None:
     """
     Saves caption embeddings to a HDF5 file (flat structure).
@@ -23,28 +25,46 @@ def save_embeddings(extractor: COCOCaptionExtractor,
         None: The function saves the embeddings to a h5 file and does not return anything.
     """
     all_captions = extractor.get_all_captions()
-    
-    filename = embedding_file / "caption_embeddings.h5"
+    if name_addition is not None:
+        filename = embedding_folder / f"caption_embeddings_{name_addition}.h5"
+    else:
+        filename = embedding_folder / "caption_embeddings.h5"
     
     print(f"Starting to save embeddings to file: {filename}")
     with h5py.File(filename, 'w') as f:
-        # Iterate through all image filepaths provided by the extractor
-        for i, path_obj in enumerate(extractor.get_all_filepaths()):
-            if (i + 1) % 1000 == 0:
-                print(f"Processed {i + 1} images...")
+        if subset is None:
+            # Iterate through all image filepaths provided by the extractor
+            for i, path_obj in enumerate(extractor.get_all_filepaths()):
+                if (i + 1) % 1000 == 0:
+                    print(f"Processed {i + 1} images...")
 
-            # The key for captions = filename 
-            caption_key = Path(path_obj).name 
-            
-            # Encode captions of current image
-            embeddings = [embedder.encode(caption) for caption in all_captions[caption_key]]
-            
-            # Convert to a NumPy array
-            embeddings_array = np.array(embeddings, dtype=np.float32)
-            
-            # Use the filename as the dataset key, ensuring a flat structure.
-            f.create_dataset(caption_key, data=embeddings_array, compression='gzip')
-    
+                # The key for captions = filename 
+                caption_key = Path(path_obj).name 
+                
+                # Encode captions of current image
+                embeddings = [embedder.encode(caption) for caption in all_captions[caption_key]]
+                
+                # Convert to a NumPy array
+                embeddings_array = np.array(embeddings, dtype=np.float32)
+                
+                # Use the filename as the dataset key, ensuring a flat structure.
+                f.create_dataset(caption_key, data=embeddings_array, compression='gzip')
+        else:
+            for i, path_obj in enumerate(subset):
+                if (i + 1) % 500 == 0:
+                    print(f"Processed {i + 1} images...")
+
+                # The key for captions = filename 
+                caption_key = Path(path_obj).name 
+                
+                # Encode captions of current image
+                embeddings = [embedder.encode(caption) for caption in all_captions[caption_key]]
+                
+                # Convert to a NumPy array
+                embeddings_array = np.array(embeddings, dtype=np.float32)
+                
+                # Use the filename as the dataset key, ensuring a flat structure.
+                f.create_dataset(caption_key, data=embeddings_array, compression='gzip')
     print(f"\nFinished saving. All embeddings keyed by the imagename are in {filename}")
       
         

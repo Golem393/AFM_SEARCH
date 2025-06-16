@@ -174,17 +174,17 @@ class COCOCaptionExtractor:
             for img_id in self.coco.imgs.keys()
         }
     
-    def get_captions_for_image(self, image_path):
+    def get_captions_for_image(self, image_name):
         """
         Get captions for a specific image
         
         Args:
-            image_path: Path to the image file
+            image_name: Name of the image file
         
         Returns:
             List of captions for the image
         """
-        target_file_name = Path(image_path).name
+        target_file_name = Path(image_name).name
         found_img_id = None
         
         # Iterate through the images loaded by COCO to find the matching file_name

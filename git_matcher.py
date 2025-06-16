@@ -14,10 +14,12 @@ class GitMatcher:
                  top_k: int,
                  print_progress: bool = False,
                  port: int = 5000,
+                 subset=None,
                  ):
         self.image_folder = image_folder
         self.top_k = top_k
         self.port = port
+        self.subset = subset
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.print_progress = print_progress
         print(f"initializing GitMatcher with device: {self.device}") if self.print_progress else None
@@ -28,8 +30,14 @@ class GitMatcher:
         # self.prompt_name_safe = self.prompt.replace(" ", "_")
         self.base_folder = embedding_folder
 
-        self.embedding_file = os.path.join(self.base_folder, f"{model_name_safe}_embeddings.npy")
-        self.filename_file = os.path.join(self.base_folder, f"{model_name_safe}_filenames.npy")
+        if self.subset is None:
+            self.embedding_file = os.path.join(self.base_folder, f"{model_name_safe}_embeddings.npy")
+            self.filename_file = os.path.join(self.base_folder, f"{model_name_safe}_filenames.npy")
+            
+        else:
+            self.embedding_file = os.path.join(self.base_folder, f"{model_name_safe}_embeddings_{len(self.subset)}.npy")
+            self.filename_file = os.path.join(self.base_folder, f"{model_name_safe}_filenames_{len(self.subset)}.npy")
+            
         # self.output_folder = os.path.join(self.base_folder, f"{self.prompt_name_safe}_{model_name_safe}_top_matches")
         print(f"Done") if self.print_progress else None
 
@@ -51,20 +59,38 @@ class GitMatcher:
         image_filenames = []
         i = 0
         
-        for filename in os.listdir(self.image_folder):
-            if filename.lower().endswith((".jpg", ".jpeg", ".png")):
-                image_path = os.path.join(self.image_folder, filename)
-                try:
-                    caption = self.compute_caption_from_server(image_path)
-                    if caption is not None:
-                        image_embeddings.append(caption)
-                        image_filenames.append(filename)
-                except Exception as e:
-                    print(f"Failed to process {filename}: {e}")
-                    
-                i += 1
-                if i % 1000 == 0 and self.print_progress:
-                    print(f"Processed {i} images...")
+        if self.subset is None:
+            for filename in os.listdir(self.image_folder):
+                if filename.lower().endswith((".jpg", ".jpeg", ".png")):
+                    image_path = os.path.join(self.image_folder, filename)
+                    try:
+                        caption = self.compute_caption_from_server(image_path)
+                        if caption is not None:
+                            image_embeddings.append(caption)
+                            image_filenames.append(filename)
+                    except Exception as e:
+                        print(f"Failed to process {filename}: {e}")
+                        
+                    i += 1
+                    if i % 1000 == 0 and self.print_progress:
+                        print(f"Processed {i} images...")
+                        
+        else:
+            print(f"compute embs for subset")
+            for filename in self.subset:
+                if filename.lower().endswith((".jpg", ".jpeg", ".png")):
+                    image_path = os.path.join(self.image_folder, filename)
+                    try:
+                        caption = self.compute_caption_from_server(image_path)
+                        if caption is not None:
+                            image_embeddings.append(caption)
+                            image_filenames.append(filename)
+                    except Exception as e:
+                        print(f"Failed to process {filename}: {e}")
+                        
+                    i += 1
+                    if i % 1000 == 0 and self.print_progress:
+                        print(f"Processed {i} images...")
         np.save(self.embedding_file, image_embeddings)
         np.save(self.filename_file, image_filenames)
         

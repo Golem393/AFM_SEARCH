@@ -13,10 +13,12 @@ class CLIPMatcher:
                  top_k=10,
                  print_progress: bool = False,
                  port:int=5000,
+                 subset=None,
                  ):
         self.image_folder = image_folder
         self.embedding_folder = embedding_folder
         self.top_k = top_k
+        self.subset = subset
         self.port = port
         self.print_progress = print_progress
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -33,9 +35,12 @@ class CLIPMatcher:
         
         model_name = requests.get(f"http://localhost:{self.port}/clip/model_name").json()['clip_model_name']
         model_name_safe = model_name.replace("/", "_")
-        self.embedding_file = os.path.join(self.embedding_folder, f"{model_name_safe}_embeddings.npy")
-        self.filename_file = os.path.join(self.embedding_folder, f"{model_name_safe}_filenames.npy")
-        
+        if self.subset is None:
+            self.embedding_file = os.path.join(self.embedding_folder, f"{model_name_safe}_embeddings.npy")
+            self.filename_file = os.path.join(self.embedding_folder, f"{model_name_safe}_filenames.npy")
+        else:
+            self.embedding_file = os.path.join(self.embedding_folder, f"{model_name_safe}_embeddings_{len(self.subset)}.npy")
+            self.filename_file = os.path.join(self.embedding_folder, f"{model_name_safe}_filenames_{len(self.subset)}.npy")
         # Load or compute embeddings
         if os.path.exists(self.embedding_file) and os.path.exists(self.filename_file):
             self.image_embeddings, self.image_filenames = self.load_embeddings()
@@ -64,20 +69,33 @@ class CLIPMatcher:
         image_filenames = []
         i = 0
         
-
-        for filename in os.listdir(self.image_folder):
-            if filename.lower().endswith((".jpg", ".jpeg", ".png")):
-                image_path = os.path.join(self.image_folder, filename)
-                try:
-                    image_feature = self.get_image_embedding(image_path)
-                    image_embeddings.append(image_feature)
-                    image_filenames.append(filename)
-                except Exception as e:
-                    print(f"Failed to process {filename}: {e}")
-                i += 1
-                if i % 1000 == 0 and self.print_progress:
-                    print(f"Processed {i} images...")
-
+        if self.subset is None:
+            for filename in os.listdir(self.image_folder):
+                if filename.lower().endswith((".jpg", ".jpeg", ".png")):
+                    image_path = os.path.join(self.image_folder, filename)
+                    try:
+                        image_feature = self.get_image_embedding(image_path)
+                        image_embeddings.append(image_feature)
+                        image_filenames.append(filename)
+                    except Exception as e:
+                        print(f"Failed to process {filename}: {e}")
+                    i += 1
+                    if i % 1000 == 0 and self.print_progress:
+                        print(f"Processed {i} images...")
+        else:
+            print(f"compute embs for subset")
+            for filename in self.subset:
+                if filename.lower().endswith((".jpg", ".jpeg", ".png")):
+                    image_path = os.path.join(self.image_folder, filename)
+                    try:
+                        image_feature = self.get_image_embedding(image_path)
+                        image_embeddings.append(image_feature)
+                        image_filenames.append(filename)
+                    except Exception as e:
+                        print(f"Failed to process {filename}: {e}")
+                    i += 1
+                    if i % 1000 == 0 and self.print_progress:
+                        print(f"Processed {i} images...")
         image_embeddings = np.vstack(image_embeddings)
         image_filenames = np.array(image_filenames)
 
