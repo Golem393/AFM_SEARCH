@@ -160,12 +160,12 @@ def main():
             )
         
         for caption in captions:
-            # try:
+            try:
                 matches_clip, scores_clip = clip_matcher.find_top_matches(caption)
                 matches_git, scores_git = git_matcher.find_top_matches(caption)
-                
-                pprint(f"clip matches: {dict(zip(matches_clip, scores_clip))}")
-                pprint(f"git matches: {dict(zip(matches_git, scores_git))}")
+                # pprint(f"matches git: {matches_git}")
+                # pprint(f"clip matches: {dict(zip(matches_clip, scores_clip))}")
+                # pprint(f"git matches: {dict(zip(matches_git, scores_git))}")
                 
                 # SCORES ARE NOT COMPAREABLE BETWEEN CLIP AND GIT, SO WE CAN NOT MERGE THEM!!!!
                 # merged_dict = {**dict(zip(matches_clip, scores_clip)), 
@@ -181,11 +181,9 @@ def main():
                     matches_both.append(matches_clip[i])
                     matches_both.append(matches_git[i])
 
-                matches_both = matches_both[:top_k_clip]
-                pprint(f"both: {matches_both}")
+                # matches_both = matches_both[:5]
+                # pprint(f"both: {matches_both}")
 
-
-                    
                 results_dict["clip"]["recall@"]["1"] += img_name in matches_clip[:1]
                 results_dict["clip"]["recall@"]["5"] += img_name in matches_clip[:5]
                 results_dict["clip"]["recall@"]["10"] += img_name in matches_clip[:10]
@@ -202,7 +200,7 @@ def main():
                 results_dict["git"]["precision@"]["1"] += precision_at_k(ground_truth, matches_git, 1)
                 results_dict["git"]["precision@"]["5"] +=  precision_at_k(ground_truth, matches_git, 5)
                 results_dict["git"]["precision@"]["10"] +=  precision_at_k(ground_truth, matches_git, 10)
-                
+                # pprint(f"matches both: {matches_both}")
                 
                 results_dict["clip+git"]["recall@"]["1"] += img_name in matches_both[:1]
                 results_dict["clip+git"]["recall@"]["5"] += img_name in matches_both[:5]
@@ -212,19 +210,24 @@ def main():
                 results_dict["clip+git"]["precision@"]["5"] +=  precision_at_k(ground_truth, matches_both, 5)
                 results_dict["clip+git"]["precision@"]["10"] +=  precision_at_k(ground_truth, matches_both, 10)
                 
-                print(f"Does this image show a {caption}? (answer only with 'yes' or 'no' and nothing else!)")
+                # pprint(f"Does this image show a {caption}? (answer only with 'yes' or 'no' and nothing else!)")
                 
                 # llava return format:{'/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000000009.jpg': 'no',
                 #  '/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000000025.jpg': 'yes'}
                 matches_llava = llava.verify_images(FOLDER_IMAGES, 
                                     matches_both, 
                                     f"Does this image show a {caption}? (answer only with 'yes' or 'no' and nothing else!)")
+                # pprint(f"matches llava plain type: {type(matches_llava)}")
+                # pprint(f"matches llava plain: {matches_llava}")
                 
-                matches_llava_both = [Path(k).name for k, v in matches_llava.items() if v == 'yes']
+                matches_llava_both = [Path(k).name for k, v in dict(matches_llava).items() if str(v).strip().lower() == 'yes']
+                # pprint(f"matches llava both: {matches_llava_both}")
                 
-                matches_llava_clip = [m for m in matches_llava_both if Path(m[0]).name in matches_clip]
+                matches_llava_clip = [m for m in matches_llava_both if m in matches_clip]
+                # pprint(f"matches llava clip: {matches_llava_clip}")
                 
-                matches_llava_git = [m for m in matches_llava_both if Path(m[0]).name in matches_git]
+                matches_llava_git = [m for m in matches_llava_both if m in matches_git]
+                # pprint(f"matches llava git: {matches_llava_git}")
                 
                 # # just clip without git
                 # matches_llava = llava.verify_images(FOLDER_IMAGES, 
@@ -262,14 +265,11 @@ def main():
                 
                 results_dict["total_captions_processed"] += 1
                 save_json_file(FILE_PROGRESS, results_dict)
-            # except Exception as e:
-            #     print(f"Error processing image {img_name} with caption '{caption}': {e}")
-            #     continue
+            except Exception as e:
+                print(f"Error processing image {img_name} with caption '{caption}': {e}")
+                continue
             
         results_dict["last_processed_index"] += 1
         
-
-        
-                    
 if __name__ == "__main__":
     main()
