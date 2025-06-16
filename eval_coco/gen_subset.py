@@ -1,3 +1,14 @@
+#!/usr/bin/env python3
+"""
+Utility script for generating random subsets of image files from COCO dataset.
+
+This module generates randomly sampled image filenames from the COCO dataset. 
+1000, 5000, and 10000 image subsets are created and saved to text files.
+Caption embeddings for these subsets are also generated and saved as h5py files. (used as precision ground truth for evaluation)
+
+>>> python gen_subset.py
+"""
+
 from pathlib import Path
 from coco_extractor import COCOCaptionExtractor
 from sentence_transformers import SentenceTransformer
@@ -12,6 +23,21 @@ def get_random_image_filenames(image_path: Path,
                                amount: int,
                                test_set: list = None, 
                                ) -> list[str]:
+    """
+    Get a random sample of image filenames from a directory or test set.
+    
+    Args:
+        image_path (Path): Path to the directory containing image files.
+        amount (int): Number of random filenames to return.
+        test_set (list, optional): Predefined list of filenames to sample from.
+                                    If None, samples from all files in image_path.
+    
+    Returns:
+        list[str]: List of randomly selected image filenames.
+    
+    Raises:
+        ValueError: If amount is greater than the number of available files.
+                                """
     if test_set is None:
         all_files = [f.name for f in image_path.iterdir() if f.is_file()]
     else:
@@ -23,12 +49,16 @@ subset_1000 = get_random_image_filenames(PATH_IMAGES, 1000)
 subset_5000 = get_random_image_filenames(PATH_IMAGES, 5000)
 subset_10000 = get_random_image_filenames(PATH_IMAGES, 10000)
 
-def save_list_to_txt(data: list[str], filename: str):
+def save_list_to_txt(data: list[str], 
+                     filename: Path) -> None:
+    """Save a list of strings to a text file, one item per line."""
     with open(filename, 'w') as f:
         for item in data:
             f.write(f"{item}\n")
 
-def load_list_from_txt(filename: str) -> list[str]:
+def load_list_from_txt(filename: Path
+                       ) -> list[str]:
+    """Load a list of strings from a text file, one item per line."""
     with open(filename, 'r') as f:
         data = [line.strip() for line in f]
     return data
@@ -40,7 +70,6 @@ save_list_to_txt(subset_10000, "subsets/subset_10000.txt")
 
 extractor = COCOCaptionExtractor(PATH_ANNOTATIONS, PATH_IMAGES)
 embedder = SentenceTransformer("all-mpnet-base-v2") 
-
     
 save_embeddings(
     extractor= extractor,

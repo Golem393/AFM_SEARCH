@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
+"""
+Utility functions for working with the COCO dataset.
+"""
 from pycocotools.coco import COCO
 from pathlib import Path
+from typing import List, Dict, Generator, Union
 from tqdm import tqdm
-import pandas as pd
 import json
 
 class COCOCaptionExtractor:
     def __init__(self, 
                  annotations_path:Path, 
-                 images_path:Path):
+                 images_path:Path
+                 )-> None:
         """
         Init COCOCaptionExtractor
         Args:
@@ -29,7 +33,6 @@ class COCOCaptionExtractor:
     
     def len_files(self):
         """
-        Get number of images in the dataset
         Returns:
             Number of images
         """
@@ -37,18 +40,17 @@ class COCOCaptionExtractor:
     
     def len_captions(self):
         """
-        Get total number of captions in the dataset
         Returns:
-            Total number of captions
+            Number of captions
         """
         total_captions = 0
-        print(self.coco.imgs.keys())
         for img_id in self.coco.imgs.keys():
             total_captions += len(self.coco.getAnnIds(imgIds=img_id))
         return total_captions
     
     def extract_captions(self, 
-                         max_images=None,):
+                         max_images:int=None,
+                         )-> List:
         """
         Extract image-caption pairs
         
@@ -112,8 +114,9 @@ class COCOCaptionExtractor:
             raise ValueError("Supported formats: 'json'")
     
     def iter_image_captions(self, 
-                            max_images=None, 
-                            output_format='dict'):
+                            max_images: int = None, 
+                            output_format: str = 'dict'
+                            ) -> Generator[Union[Dict, str], None, None]:
         """
         Iterator that yields image path and captions
         
@@ -155,13 +158,15 @@ class COCOCaptionExtractor:
             else:
                 yield result
     
-    def get_sample_data(self, n_samples=10):
+    def get_sample_data(self, 
+                        n_samples:int=10)-> List[Dict]:
         return self.extract_captions(max_images=n_samples)
     
-    def get_all_filepaths(self):
+    def get_all_filepaths(self)-> List[str]:
         return sorted([str(self.images_path / img_info['file_name']) for img_info in self.coco.imgs.values()])
     
-    def get_all_captions(self):
+    def get_all_captions(self
+                         )-> Dict[Path, List[str]]:
         """
         Get all captions in the dataset
         
@@ -174,7 +179,9 @@ class COCOCaptionExtractor:
             for img_id in self.coco.imgs.keys()
         }
     
-    def get_captions_for_image(self, image_name):
+    def get_captions_for_image(self, 
+                               image_name:Path
+                               ) -> List[str]:
         """
         Get captions for a specific image
         
@@ -206,46 +213,7 @@ class COCOCaptionExtractor:
     
 
 def main():
-    # Configuration
-    ANNOTATIONS_PATH = "/storage/group/dataset_mirrors/old_common_datasets/coco/annotations"
-    IMAGES_PATH = "/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014"
+    ...
     
-    extractor = COCOCaptionExtractor(ANNOTATIONS_PATH, IMAGES_PATH)
-    
-    # Extract sample data as dict for testing
-    print("Extracting sample data...")
-    sample_data = extractor.get_sample_data(n_samples=100)
-    # extractor.save_data(sample_data, "coco_sample_captions.json")
-    
-    
-    print("\nIterating through first 5 images:")
-    for i, item in enumerate(extractor.iter_image_captions(max_images=5, output_format='dict')):
-        print(f"\nImage {i+1}:")
-        print(f"  Path: {item['image_path']}")
-        print(f"  Captions ({len(item['captions'])}):")
-        for j, caption in enumerate(item['captions']):
-            print(f"    {j+1}. {caption}")
-    
-    # Using iterator for pipeline evaluation
-    print("\nExample pipeline evaluation:")
-    for item in extractor.iter_image_captions(max_images=None, output_format='dict'):
-        image_path = item['image_path']
-        ground_truth_captions = item['captions']
-        
-        # Here's where you'd run your pipeline
-        # your_caption = your_pipeline(image_path)
-        # evaluate_caption(your_caption, ground_truth_captions)
-        
-        print(f"Process: {Path(image_path).name} with {len(ground_truth_captions)} GT captions")
-    
-    # # Print sample
-    # print("\nSample data structure:")
-    # for i, item in enumerate(sample_data[:2]):
-    #     print(f"\nImage {i+1}:")
-    #     print(f"  File: {item['file_name']}")
-    #     print(f"  Captions ({item['num_captions']}):")
-    #     for j, caption in enumerate(item['captions']):
-    #         print(f"    {j+1}. {caption}")
-
 if __name__ == "__main__":
     main()

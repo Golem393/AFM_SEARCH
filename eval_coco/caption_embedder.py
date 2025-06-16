@@ -1,3 +1,9 @@
+
+#!/usr/bin/env python3
+"""
+Utility functions for saving, loading and find similar caption embedding of the COCO dataset.
+"""
+
 from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
 from coco_extractor import COCOCaptionExtractor
@@ -8,21 +14,24 @@ import h5py
 
 
 def save_embeddings(extractor: COCOCaptionExtractor, 
-                    embedder:SentenceTransformer, 
-                    embedding_folder:Path,
-                    name_addition:str = None,
-                    subset:List[Path]=None,
+                    embedder: SentenceTransformer, 
+                    embedding_folder: Path,
+                    name_addition: str = None,
+                    subset: List[Path]=None,
                     )->None:
     """
-    Saves caption embeddings to a HDF5 file (flat structure).
+    Saves caption embeddings to a HDF5 file.
     
-    Args:        
-        extractor (COCOCaptionExtractor): An instance of the COCOCaptionExtractor to get captions and
-        embedder (SentenceTransformer): An instance of SentenceTransformer to encode captions.
-        save_path (Path): The directory where the HDF5 file will be saved.      
-        
+    Args:
+        extractor (COCOCaptionExtractor): An instance of COCOCaptionExtractor to extract captions.
+        embedder (SentenceTransformer): A SentenceTransformer model to encode captions.
+        embedding_folder (Path): Directory where the embeddings will be saved.
+        name_addition (str, optional): Additional string to append to the filename. Defaults to None.
+        subset (List[Path], optional): A list of specific image paths to process.
+                                       If None, processes all images from the extractor.    
+                                       
     Returns:
-        None: The function saves the embeddings to a h5 file and does not return anything.
+        None: The function saves the embeddings to a file in the specified directory.
     """
     all_captions = extractor.get_all_captions()
     if name_addition is not None:
@@ -70,7 +79,7 @@ def save_embeddings(extractor: COCOCaptionExtractor,
         
 def load_embeddings(embedding_file_path:Path, 
                     image_paths:List[Path]=None,
-                    )->Dict[str, np.ndarray]:
+                    )->Dict[Path, np.ndarray]:
     """
     Loads embeddings from a flat HDF5 file.
     
@@ -131,7 +140,8 @@ def find_similar_images(
         return_scores (bool, optional): If True, returns a list of tuples (filename, score).
 
     Returns:
-        List[str]: A sorted list of the most similar image filenames.
+        (List[str] | List[tuple[str, float]]): 
+            A list of filenames or tuples (filename, score) of similar images based on the specified criteria.
     """
     CAPTIONS_PER_IMAGE = 5
     if top_percent is not None and threshold is not None:

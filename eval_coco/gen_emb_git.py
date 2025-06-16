@@ -1,9 +1,15 @@
-from coco_extractor import COCOCaptionExtractor
+#!/usr/bin/env python3
+"""
+Utility script for generating git embeddings of COCO Images. (2.5/second)
+
+1000, 5000, and 10000 image subsets are created and saved as npy files.
+
+>>> python gen_emb_git.py --port 5000
+"""
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 from git_matcher import GitMatcher
-from clip_matcher import CLIPMatcher
 import argparse
 
 parser = argparse.ArgumentParser(description="Run the model server")

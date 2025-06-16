@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+"""
+Utility script for generating git embeddings of COCO Images. (2.5/second)
+
+1000, 5000, and 10000 image subsets are created and saved as npy files.
+
+>>> python gen_emb_clip.py --port 5000
+"""
 from coco_extractor import COCOCaptionExtractor
 import sys
 from pathlib import Path
