@@ -7,12 +7,14 @@ from PIL import Image
 import math
 
 class CLIPLLaVAPipeline:
-    def __init__(self, image_folder, clip_prompt, verification_prompt, top_k=10):
-        self.image_folder = image_folder
+    def __init__(self, image_video_folder, clip_prompt, verification_prompt, top_k, video_embedder_type, frames_per_video_clip_max):
+        self.image_video_folder = image_video_folder
         self.clip_prompt = clip_prompt
         self.git_prompt = clip_prompt
         self.verification_prompt = verification_prompt
         self.top_k = top_k
+        self.video_embedder_type = video_embedder_type
+        self.frames_per_video_clip_max = frames_per_video_clip_max
 
     def create_verification_report_pdf(self, *, confirmed, rejected, unclear, output_folder, prompt, pdf_path="verification_results.pdf"):
         def load_images(filenames, folder):
@@ -61,9 +63,11 @@ class CLIPLLaVAPipeline:
         # Step 1: Run CLIP matcher to find top matches
         print("Running CLIP matcher...")
         clip_matcher = CLIPMatcher(
-            image_folder=self.image_folder,
+            image_video_folder=self.image_video_folder,
             prompt=self.clip_prompt,
-            top_k=self.top_k
+            video_embedder_type = self.video_embedder_type,
+            top_k=self.top_k,
+            frames_per_video_clip_max = self.frames_per_video_clip_max
         )
         """git_matcher = GitMatcher(
             image_folder=self.image_folder,
@@ -79,7 +83,7 @@ class CLIPLLaVAPipeline:
         print("\nVerifying matches with LLaVA...")
         llava = LLaVAVerifier()
         verification_results = llava.verify_images_batch(
-            image_folder=output_folder,
+            image_video_folder=output_folder,
             prompt=self.verification_prompt
         )
         
@@ -146,13 +150,15 @@ class CLIPLLaVAPipeline:
         }
 
 if __name__ == "__main__":
-    prompt = "the city of Phuket"
+    prompt = "handsome guy"
     # Example usage
     pipeline = CLIPLLaVAPipeline(
-        image_folder="Thailand/image",
+        image_video_folder="Thailand/image_video",
         clip_prompt=prompt,
         verification_prompt=f"Does this image show a {prompt}? (answer with 'yes' or 'no')",
-        top_k=10
+        top_k=20,
+        video_embedder_type = "keyframe_k_frames",
+        frames_per_video_clip_max = 20
     )
     
     results = pipeline.run()

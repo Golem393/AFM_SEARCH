@@ -6,6 +6,8 @@ from llava.model.builder import load_pretrained_model
 from flask import Flask, request, jsonify
 from concurrent.futures import Future, ThreadPoolExecutor
 from transformers import AutoProcessor, AutoModelForCausalLM
+import base64
+from io import BytesIO
 
 import threading
 import queue
@@ -138,6 +140,42 @@ def embed_image():
         future.set_result(image_feature.cpu().numpy().tolist())
     except Exception as e:
         future.set_exception(e)
+    return jsonify({'result': future.result()})
+
+@app.route('/clip/embed_images', methods=['POST'])
+def embed_images():
+    data = request.json
+    future = Future()
+    try:
+        image_tensors = []
+
+        if "image_paths" in data:
+            for path in data["image_paths"]:
+                image = Image.open(path)
+                image_tensor = clip_preprocess(image).unsqueeze(0)
+                image_tensors.append(image_tensor)
+
+        elif "images" in data:
+            for image_data in data["images"]:
+                # If raw PIL images are sent via a frontend, adapt this as needed
+                image = Image.open(BytesIO(base64.b64decode(image_data))).convert("RGB")
+                image_tensor = clip_preprocess(image).unsqueeze(0)
+                image_tensors.append(image_tensor)
+
+        else:
+            raise ValueError("No valid image input found. Provide 'image_paths' or 'images'.")
+
+        # Stack into a batch
+        batch = torch.cat(image_tensors, dim=0).to(clip_device)
+
+        with torch.no_grad():
+            image_features = clip_model.encode_image(batch).float()
+            image_features /= image_features.norm(dim=-1, keepdim=True)
+
+        future.set_result(image_features.cpu().numpy().tolist())
+    except Exception as e:
+        future.set_exception(e)
+
     return jsonify({'result': future.result()})
 
 @app.route('/clip/embed_text', methods=['POST'])

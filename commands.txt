@@ -5,3 +5,8 @@ salloc --nodes=1 --cpus-per-task=4 --mem=32G \
 python3 test.py
 ls /storage/group/dataset_mirrors/01_incoming
 scancel <jobid>
+
+pip install decord
+pip install ffmpeg-python
+
+srun --jobid=<id> --pty bash
