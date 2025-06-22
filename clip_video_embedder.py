@@ -32,34 +32,38 @@ class CLIPVideoEmbedder:
         os.makedirs(save_dir)
         
         if self.video_embedder_type == "uniform_average":
-            frames = self.extract_uniform_frames(video_path, num_frames=self.frames_per_video_clip_max)
-            embeddings, paths = self.embed_and_save_frames(frames, save_dir=save_dir, video_name = video_name)
-            return [embeddings.mean(axis=0)]
+            frames, main_frame = self.extract_uniform_frames(video_path, max_frames=self.frames_per_video_clip_max)
+            embeddings, paths = self.embed_and_save_frames(frames, save_dir=save_dir, video_name = video_name, main_frame = main_frame)
+            return [embeddings.mean(axis=0)], paths
         
         elif self.video_embedder_type == "keyframe_average":
-            frames = self.extract_keyframes(video_path, max_frames=self.frames_per_video_clip_max)
-            embeddings, paths = self.embed_and_save_frames(frames, save_dir=save_dir, video_name = video_name)
-            return [embeddings.mean(axis=0)]
+            frames, main_frame = self.extract_keyframes(video_path, max_frames=self.frames_per_video_clip_max)
+            embeddings, paths = self.embed_and_save_frames(frames, save_dir=save_dir, video_name = video_name, main_frame = main_frame)
+            return [embeddings.mean(axis=0)], paths
         
         elif self.video_embedder_type == "uniform_k_frames":
-            frames = self.extract_uniform_frames(video_path, num_frames=self.frames_per_video_clip_max)
+            frames = self.extract_uniform_frames(video_path, max_frames=self.frames_per_video_clip_max)
             embeddings, paths = self.embed_and_save_frames(frames, save_dir=save_dir, video_name = video_name)
-            return embeddings
+            return embeddings, paths
         
         elif self.video_embedder_type == "keyframe_k_frames":
-            frames = self.extract_keyframes(video_path, max_frames=self.frames_per_video_clip_max)
+            frames, _ = self.extract_keyframes(video_path, max_frames=self.frames_per_video_clip_max)
             embeddings, paths = self.embed_and_save_frames(frames, save_dir=save_dir, video_name = video_name)
             return embeddings, paths
         
         else:
             raise ValueError(f"Unknown type: {self.video_embedder_type}")
-
-    def extract_uniform_frames(self, video_path: str, num_frames: int = 16) -> List[Image.Image]:
-        """Extract uniformly spaced frames using decord"""
+    
+    def extract_uniform_frames(self, video_path: str, max_frames: int = 16) -> List[Image.Image]:
+        """Extract uniformly spaced frames using decord, based on video duration"""
         vr = decord.VideoReader(video_path)
-        frame_indices = np.linspace(0, len(vr)-1, num=num_frames, dtype=int)
+        duration = len(vr) / vr.get_avg_fps()
+        num_frames = max(1, min(max_frames, int(duration / 7))) #every 7 seconds
+        frame_indices = np.linspace(0, len(vr) - 1, num=num_frames, dtype=int)
         frames = [Image.fromarray(vr[i].asnumpy()) for i in frame_indices]
-        return frames
+        main_keyframe = duration / 2.0
+        return frames, main_keyframe
+
 
     def _detect_scene_changes_direct(self, video_path: str, threshold: float = 0.05):
         """Detect scene changes with their scores using ffmpeg metadata print filter."""
@@ -164,6 +168,11 @@ class CLIPVideoEmbedder:
             
             # Detect all scene changes
             scene_changes, scene_thresholds = self._detect_scene_changes_direct(video_path)
+            if len(scene_changes) != 0:
+                best_idx = int(np.argmax(scene_thresholds))
+                main_keyframe = scene_changes[best_idx]
+            else:
+                main_keyframe = duration / 2.0
            # print(len(scene_changes))
             #print(scene_thresholds, "Thresholds")
 
@@ -171,7 +180,7 @@ class CLIPVideoEmbedder:
             print(len(selected_timestamps), "Selected timestamps")
             
             
-            return self._extract_at_timestamps(video_path, selected_timestamps)
+            return self._extract_at_timestamps(video_path, selected_timestamps), main_keyframe
                 
         except Exception as e:
             print(f"Keyframe extraction failed: {e}")
@@ -189,7 +198,7 @@ class CLIPVideoEmbedder:
             frames.append(Image.open(io.BytesIO(out)))
         return frames
 
-    def embed_and_save_frames(self, frames: List[Image.Image], save_dir, video_name) -> torch.Tensor:
+    def embed_and_save_frames(self, frames: List[Image.Image], save_dir, video_name, main_frame = None) -> torch.Tensor:
         """Generate CLIP embeddings for a list of frames"""
         frame_paths = []
         with torch.no_grad():
@@ -198,8 +207,9 @@ class CLIPVideoEmbedder:
                     img = Image.fromarray(frame)
                 else:
                     img = frame
-                img.save(os.path.join(save_dir, f"keyframe_{i:03d}.jpg"))
-                frame_paths.append(os.path.join(video_name, f"keyframe_{i:03d}.jpg"))
+                if main_frame == None:
+                    img.save(os.path.join(save_dir, f"keyframe_{i:03d}.jpg"))
+                    frame_paths.append(os.path.join(video_name, f"keyframe_{i:03d}.jpg"))
             images = [self.pil_to_base64(frame) for frame in frames]
             # Send to server
             response = requests.post(
@@ -207,6 +217,9 @@ class CLIPVideoEmbedder:
                 json={"images": images}
             )
             frame_embeddings = np.array(response.json()['result'])
+            if main_frame != None:
+                img.save(os.path.join(save_dir, f"main_keyframe.jpg"))
+                frame_paths.append(os.path.join(video_name, f"main_keyframe.jpg"))
         return frame_embeddings, frame_paths
     
     def pil_to_base64(self, img, format='JPEG'):

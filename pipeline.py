@@ -150,14 +150,14 @@ class CLIPLLaVAPipeline:
         }
 
 if __name__ == "__main__":
-    prompt = "handsome guy"
+    prompt = "blue jeans"
     # Example usage
     pipeline = CLIPLLaVAPipeline(
         image_video_folder="Thailand/image_video",
         clip_prompt=prompt,
         verification_prompt=f"Does this image show a {prompt}? (answer with 'yes' or 'no')",
-        top_k=20,
-        video_embedder_type = "keyframe_k_frames",
+        top_k=15,
+        video_embedder_type = "keyframe_k_frames",  #"keyframe_k_frames", "uniform_k_frames", "keyframe_average", "uniform_average"
         frames_per_video_clip_max = 20
     )
     
