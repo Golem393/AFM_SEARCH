@@ -7,22 +7,28 @@ from PIL import Image
 import math
 
 class CLIPLLaVAPipeline:
-    def __init__(self, image_folder,  
+    def __init__(self, image_video_folder,  
                  clip_model="ViT-L/14@336px", 
                  top_k=10, 
-                 llava_model="liuhaotian/llava-v1.5-7b"):
-        self.image_folder = image_folder
+                 llava_model="liuhaotian/llava-v1.5-7b",
+                 video_embedder_type="keyframe_k_frames",
+                 frames_per_video_clip_max=20):
+        self.image_video_folder = image_video_folder
         self.git_model = "microsoft/git-large"
         self.clip_model = clip_model
         self.top_k = top_k
         self.llava_model = llava_model
+        self.video_embedder_type = video_embedder_type
+        self.frames_per_video_clip_max = frames_per_video_clip_max
         
     def run(self, prompt):
         # Step 1: Run CLIP matcher to find top matches
         print("Running CLIP matcher...")
         clip_matcher = CLIPMatcher(
-            image_folder=self.image_folder,
+            image_video_folder=self.image_video_folder,
             embedding_folder="/usr/prakt/s0115/AFM_SEARCH/eval_coco/embeddings",
+            video_embedder_type = self.video_embedder_type,
+            frames_per_video_clip_max = self.frames_per_video_clip_max
             # prompt=prompt,
             # model=self.clip_model,
             top_k=self.top_k
@@ -41,7 +47,7 @@ class CLIPLLaVAPipeline:
         print("\nVerifying matches with LLaVA...")
         llava = LLaVAVerifier()
         verification_results = llava.verify_images(
-            img_path=self.image_folder,
+            img_path=self.image_video_folder,
             images=top_files,
             prompt=f"Does this image show a {prompt}? (answer only with 'yes' or 'no' and nothing else!)"
         )
@@ -73,7 +79,9 @@ if __name__ == "__main__":
     pipeline = CLIPLLaVAPipeline(
         image_folder="/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014",
         clip_model="ViT-L/14@336px",
-        top_k=10
+        top_k=15,
+        video_embedder_type = "keyframe_k_frames",  #"keyframe_k_frames", "uniform_k_frames", "keyframe_average", "uniform_average"
+        frames_per_video_clip_max = 20
     )
     
     results = pipeline.run()

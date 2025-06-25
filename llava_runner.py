@@ -40,14 +40,14 @@ class LLaVAVerifier:
                 # print(response.json()['result'])
         return results
     
-    def verify_images_batch(self, image_folder: str, prompt: str) -> Dict[str, str]:
+    def verify_images_batch(self, image_video_folder: str, prompt: str) -> Dict[str, str]:
         """Batch processing - send all images at once"""
         image_paths = []
         filenames = []
         
-        for filename in os.listdir(image_folder):
+        for filename in os.listdir(image_video_folder):
             if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-                image_path = os.path.join(image_folder, filename)
+                image_path = os.path.join(image_video_folder, filename)
                 image_paths.append(image_path)
                 filenames.append(filename)
         
@@ -85,7 +85,7 @@ class LLaVAVerifier:
         except requests.exceptions.RequestException as e:
             print(f"Batch request failed: {e}")
             # Fallback to individual processing
-            return self.verify_images_concurrent(image_folder, prompt)
+            return self.verify_images_concurrent(image_video_folder, prompt)
         
     @staticmethod
     def extract_verdict(text):

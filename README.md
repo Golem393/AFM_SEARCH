@@ -1,25 +1,23 @@
 # AFM_SEARCH
-use python 3.10 in your conda
-#### Activate cuda & compiler: 
-```
-module load cuda/12.1.0
-module load compiler/gcc-10.1
-```
-#### Install LLaVA in project root
-```
-git clone https://github.com/haotian-liu/LLaVA.git
-cd LLaVA
-pip install --upgrade pip  # enable PEP 660 support
-pip install -e .
-pip install -e ".[train]"
-optional: pip install flash-attn --no-build-isolation
-```
-#### Install requirements
-```
-cd ..
-pip install -r requirements.txt
-```
 
-```
-srun --jobid=1376466 --pty bash
-```
+Git repo of Group 5 for the Practical Course _Applied Foundation Models_
+
+## Setup 🔧
+
+**Installation:**
+1. Clone LLaVA Folder into same directory as files: `git clone https://github.com/haotian-liu/LLaVA.git`
+2. `cd LLaVA`
+3. `pip install --upgrade pip` (enables PEP 660 support)
+4. `pip install -e .`
+5. `pip install -e ".[train]"`
+6. `pip install flash-attn --no-build-isolation` (optional)
+7. `pip install -r requirements.txt`
+8. At /LLaVA/llava/eval/run_llava.py insert function `eval_mode_with_loaded` from eval_mode_with_loaded.txt
+
+**SLURM Cluster:**
+1. `salloc --nodes=1 --ntasks=2 --cpus-per-task=4 --mem=32G --gres=gpu:1,VRAM:24G --time=02:00:00 --partition=PRACT--qos=practical_course`
+2. `conda activate <env>`
+3. Open second terminal `srun --jobid=<id> --pty bash`
+4. In the first terminal `python3 model_server.py`
+5. Second terminal `conda activate <env>`
+6. If server is started, in the second terminal `python3 pipelin.py` or similar script to use pipelin

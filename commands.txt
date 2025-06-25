@@ -14,3 +14,7 @@ sacct -> runningn jobs
 
 
 
+pip install decord
+pip install ffmpeg-python
+
+srun --jobid=<id> --pty bash

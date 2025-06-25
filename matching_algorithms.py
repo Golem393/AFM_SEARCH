@@ -10,10 +10,10 @@ class MeanMatcher():
         self.img_emb = img_emb
         self.key_emb = key_emb
         self.__similarity = img_emb @ key_emb.T
-    def match(self, paths):
+    def match(self, paths, k):
         means = np.mean(self.__similarity, axis=1)
-        criterion = np.percentile(means, 95)
-        k = len(means[means >= criterion])
+        #criterion = np.percentile(means, 95)
+        #k = len(means[means >= criterion])
         idcs = np.argsort(means)[::-1][:k]
         top_paths = [paths[idx] for idx in idcs]
         top_similarities = means[idcs].tolist()
