@@ -37,7 +37,7 @@ class CLIPVideoEmbedder:
             return [embeddings.mean(axis=0)], paths
         
         elif self.video_embedder_type == "keyframe_average":
-            frames, main_frame = self.extract_keyframes(video_path, max_frames=self.frames_per_video_clip_max)
+            frames, main_frame = self.extract_keyframes_ffmpeg(video_path, max_frames=self.frames_per_video_clip_max)
             embeddings, paths = self.embed_and_save_frames(frames, save_dir=save_dir, video_name = video_name, main_frame = main_frame)
             return [embeddings.mean(axis=0)], paths
         
@@ -47,9 +47,12 @@ class CLIPVideoEmbedder:
             return embeddings, paths
         
         elif self.video_embedder_type == "keyframe_k_frames":
-            frames, _ = self.extract_keyframes(video_path, max_frames=self.frames_per_video_clip_max)
+            frames, _ = self.extract_keyframes_ffmpeg(video_path, max_frames=self.frames_per_video_clip_max)
             embeddings, paths = self.embed_and_save_frames(frames, save_dir=save_dir, video_name = video_name)
             return embeddings, paths
+        
+        #elif self.video_embedder_type == "optical_flow":
+            
         
         else:
             raise ValueError(f"Unknown type: {self.video_embedder_type}")
@@ -157,7 +160,7 @@ class CLIPVideoEmbedder:
 
         return sorted(timestamps[i] for i in selected)
 
-    def extract_keyframes(self, video_path: str, max_frames: int = 16) -> List[Image.Image]:
+    def extract_keyframes_ffmpeg(self, video_path: str, max_frames: int = 16) -> List[Image.Image]:
         """Intelligently extracts keyframes up to max_frames based on content complexity"""
         try:
             # Get video metadata
