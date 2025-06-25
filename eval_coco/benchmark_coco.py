@@ -10,15 +10,11 @@ from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from pipeline import CLIPLLaVAPipeline
 from coco_extractor import COCOCaptionExtractor
 from caption_embedder import load_embeddings, find_similar_images
-from pipeline import CLIPLLaVAPipeline
 from llava_runner import LLaVAVerifier
 from clip_matcher import CLIPMatcher
 from git_matcher import GitMatcher
-from datetime import datetime
-from pprint import pprint
 import argparse
 import json
 import os
@@ -148,7 +144,7 @@ def main():
         )
 
     
-    llava = LLaVAVerifier()
+    llava = LLaVAVerifier(port=port)
     
     results_dict = open_json_file(FILE_PROGRESS)
     start_index = results_dict.get("last_processed_index", 0)

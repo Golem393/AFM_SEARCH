@@ -281,82 +281,52 @@ img_paths = [
 "/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000320478.jpg",
 "/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000223091.jpg",
 "/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000076776.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000284342.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000159926.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000382673.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000327539.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000541705.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000579123.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000049283.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000307001.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000503809.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000399154.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000001895.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000280898.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000414738.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000562862.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000529050.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000132528.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000379638.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000161434.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000572923.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000280423.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000457686.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000051474.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000043583.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000402671.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000563437.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000331271.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000366712.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000506377.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000535282.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000500789.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000304332.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000169287.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000142208.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000225878.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000254774.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000011223.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000271373.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000343243.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000461535.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000091234.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000545874.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000452500.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000082909.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000409208.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000357132.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000579571.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000001102.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000545833.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000537231.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000573062.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000431383.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000004239.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000032707.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000018475.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000230971.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000569567.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000170227.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000516812.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000120518.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000401835.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000398070.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000090498.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000030492.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000486227.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000156043.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000418989.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000498090.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000038431.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000218455.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000286061.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000492705.jpg",
-"/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014/COCO_train2014_000000081001.jpg",
-
-    
-    
 ]
 print("A person standing on the snow next to a tree.")
 show_images(img_paths)
+# %%
+import os
+import json
+from pprint import pprint
+
+def open_json_file(file_path)->dict:
+    """Open a JSON file and return its content.
+    Format:
+    all_models_progress = {
+        "last_processed_index": -1,
+        "total_captions_processed": 0,
+        "clip": {
+            "recall@": {"1": 0,"5": 0,"10": 0},
+            "precision@": {"1": 0.0,"5": 0.0,"10": 0.0}
+            },
+            ...,
+    }}
+    """
+    if os.path.exists(file_path):
+        with open(file_path, 'r') as f:
+            all_models_progress = json.load(f)
+        
+    return all_models_progress
+
+def calc_metrics(results:dict)->tuple[dict, int]:
+    captions = results["total_captions_processed"]
+    images = results["last_processed_index"]
+    
+    for model in ["clip", "git", "clip+git", "clip+llava", "git+llava", "clip+git+llava"]:
+        for metric_name, metric_dict in results[model].items():
+            for k, value in metric_dict.items():
+                results[model][metric_name][k] = value / captions
+    pprint("Metrics calculated:")
+    pprint(results)
+    return results, captions, images
+
+#%%
+normalized_results, samples, images = calc_metrics(open_json_file("benchmarks/eval_progress_10000.json"))                    
+# %%
+print(f"Metrics for {samples} captions")
+print("Normalized Clip Results:")
+pprint(normalized_results["clip"])
+print("\n")
+print("Normalized Clip+LLaVA Results:")
+pprint(normalized_results["clip+llava"])
 # %%
