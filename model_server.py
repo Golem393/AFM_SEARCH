@@ -8,6 +8,7 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from transformers import AutoProcessor, AutoModelForCausalLM
 import os
 import argparse
+import cv2
 
 import base64
 from io import BytesIO
@@ -91,7 +92,7 @@ def llava_worker():
         if task is None:
             break
         try:
-            output = eval_model_with_loaded(task["prompt"], task["image_path"],
+            output = eval_model_with_loaded(task["prompt"], task["image_input"],
                                             llava_model, llava_tokenizer, llava_image_processor)
             task['future'].set_result(output)
             if torch.cuda.is_available():
@@ -239,7 +240,7 @@ def verify_image():
 
     future = Future()
     llava_queue.put({
-        'image_path': image_path,
+        'image_input': image_path,
         'prompt': prompt,
         'future': future
     })
@@ -249,6 +250,51 @@ def verify_image():
         return jsonify({'result': result})
     except Exception as e:
         return jsonify({'result': str(e)}), 500
+    
+@app.route('/llava/verify_video', methods=['POST'])
+def verify_video():
+    data = request.json
+    video_path = data.get("video_path")
+    timestamp = data.get("timestamp")
+    prompt = data.get("prompt")
+
+    if not video_path or timestamp is None or not prompt:
+        return jsonify({"error": "Missing 'video_path', 'timestamp', or 'prompt' in request"}), 400
+
+    if not os.path.exists(video_path):
+        return jsonify({"error": f"Video not found at {video_path}"}), 404
+
+    try:
+        frame = extract_frame_at_timestamp(video_path, float(timestamp))
+    except Exception as e:
+        return jsonify({"error": f"Failed to extract frame: {e}"}), 500
+
+    future = Future()
+    llava_queue.put({
+        'image_input': frame,
+        'prompt': prompt,
+        'future': future
+    })
+
+    try:
+        result = future.result(timeout=60)
+        return jsonify({'result': result})
+    except Exception as e:
+        return jsonify({'result': str(e)}), 500
+    
+def extract_frame_at_timestamp(video_path, timestamp):
+    cap = cv2.VideoCapture(video_path)
+    cap.set(cv2.CAP_PROP_POS_MSEC, timestamp * 1000)
+
+    success, frame = cap.read()
+    cap.release()
+
+    if not success or frame is None:
+        raise RuntimeError(f"Could not read frame at {timestamp:.2f}s")
+
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    return Image.fromarray(frame_rgb)
+    
     
 @app.route('/clip/model_name', methods=['GET'])
 def get_clip_model_name():

@@ -37,7 +37,32 @@ class LLaVAVerifier:
                 )
                 print(f"llava response: {response.json()['result']}")
                 results[filename] = response.json()['result']
-                # print(response.json()['result'])
+                # response.json()['result']
+            elif ".mp4_" in filename:
+                # Case 2: Video frame reference like "video.mp4_2.45"
+                try:
+                    video_name, timestamp_str = filename.rsplit(".mp4_", 1)
+                    video_file = f"{video_name}.mp4"
+                    timestamp = float(timestamp_str)
+                    video_path = os.path.join(img_path, video_file)
+
+                    print(f"llava video path: {video_path} at {timestamp:.2f}s")
+
+                    response = requests.post(
+                        f"{self.server_url}/llava/verify_video",
+                        json={
+                            "video_path": video_path,
+                            "timestamp": timestamp,
+                            "prompt": prompt
+                        }
+                    )
+                    result = response.json().get('result', 'no result')
+                    print(f"llava response: {result}")
+                    results[filename] = result
+
+                except Exception as e:
+                    print(f"Failed to process video reference {filename}: {e}")
+                    results[filename] = f"error: {e}"
         return results
     
     def verify_images_batch(self, image_video_folder: str, prompt: str) -> Dict[str, str]:

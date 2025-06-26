@@ -44,32 +44,31 @@ class CLIPMatcher:
         
         model_name = requests.get(f"http://localhost:{self.port}/clip/model_name").json()['clip_model_name']
         model_name_safe = model_name.replace("/", "_")
+        self.clip_video_embedder = CLIPVideoEmbedder(self.video_embedder_type, frames_per_video_clip_max)
         if self.subset is None:
             self.embedding_file = os.path.join(self.embedding_folder, f"{model_name_safe}_embeddings.npy")
-            self.video_embedding_file = os.path.join(self.base_folder, f"{model_name_safe}_{self.video_embedder_type}_embeddings.npy")
+            self.video_embedding_file = os.path.join(self.embedding_folder, f"{model_name_safe}_{self.video_embedder_type}_embeddings.npy")
             self.filename_file = os.path.join(self.embedding_folder, f"{model_name_safe}_filenames.npy")
-            self.video_filename_file = os.path.join(self.base_folder, f"{model_name_safe}_{self.video_embedder_type}_filenames.npy")
+            self.video_timestamp_file = os.path.join(self.embedding_folder, f"{model_name_safe}_{self.video_embedder_type}_timestamps.npy")
         else:
             self.embedding_file = os.path.join(self.embedding_folder, f"{model_name_safe}_embeddings_{len(self.subset)}.npy")
-            self.video_embedding_file = os.path.join(self.base_folder, f"{model_name_safe}_{self.video_embedder_type}_embeddings_{len(self.subset)}.npy")
+            self.video_embedding_file = os.path.join(self.embedding_folder, f"{model_name_safe}_{self.video_embedder_type}_embeddings_{len(self.subset)}.npy")
             self.filename_file = os.path.join(self.embedding_folder, f"{model_name_safe}_filenames_{len(self.subset)}.npy")
-            self.video_filename_file = os.path.join(self.base_folder, f"{model_name_safe}_{self.video_embedder_type}_filenames_{len(self.subset)}.npy")
+            self.video_timestamp_file = os.path.join(self.embedding_folder, f"{model_name_safe}_{self.video_embedder_type}_timestamps_{len(self.subset)}.npy")
         # Load or compute embeddings
         if os.path.exists(self.embedding_file) and os.path.exists(self.filename_file):
             self.image_embeddings, self.image_filenames = self.load_embeddings()
         else:
             self.image_embeddings, self.image_filenames = self.compute_embeddings()
 
-        if os.path.exists(self.video_embedding_file) and os.path.exists(self.video_filename_file):
-            self.video_embeddings, self.video_filenames = self.load_video_embeddings()
+        if os.path.exists(self.video_embedding_file) and os.path.exists(self.video_timestamp_file):
+            self.video_embeddings, self.video_timestamps = self.load_video_embeddings()
         else:
-            self.video_embeddings, self.video_filenames = self.compute_video_embeddings()
+            self.video_embeddings, self.video_timestamps = self.compute_video_embeddings()
 
         self.all_embeddings = np.concatenate([self.image_embeddings, self.video_embeddings], axis=0)
-        self.all_filenames = list(self.image_filenames) + list(self.video_filenames)
+        self.all_filenames_time_stamps = list(self.image_filenames) + list(self.video_timestamps)
         print(f"Done") if self.print_progress else None
-
-        self.clip_video_embedder = CLIPVideoEmbedder(self.video_embedder_type, frames_per_video_clip_max)
 
     def get_image_embedding(self, image_path):
         response = requests.post(
@@ -122,7 +121,7 @@ class CLIPMatcher:
     def compute_video_embeddings(self):
         print("Computing video embeddings...")
         video_embeddings = []
-        video_filenames = []
+        video_codes = []
 
         if self.subset is None:
             list_dir = os.listdir(self.image_video_folder)
@@ -133,32 +132,30 @@ class CLIPMatcher:
         for filename in list_dir:
             if filename.lower().endswith((".mp4")):
                 video_path = os.path.join(self.image_video_folder, filename)
-                video_features, video_paths = self.clip_video_embedder.get_video_embedding_and_paths(video_path)
+                video_features, video_timestamps = self.clip_video_embedder.get_video_embedding_and_timestamps(video_path)
                 for i in range(len(video_features)):
-                    video_feature = video_features[i]
-                    video_frame_path = video_paths[i]
-                    video_embeddings.append(video_feature)
-                    video_filenames.append(video_frame_path)
+                    video_embeddings.append(video_features[i])
+                    video_codes.append(video_timestamps[i])
 
         video_embeddings = np.vstack(video_embeddings)
-        video_filenames = np.array(video_filenames)
+        video_codes = np.array(video_codes)
 
         np.save(self.video_embedding_file, video_embeddings)
-        np.save(self.video_filename_file, video_filenames)
+        np.save(self.video_timestamp_file, video_codes)
 
-        return video_embeddings, video_filenames
-    
+        return video_embeddings, video_codes
+
     def load_embeddings(self):
         print("Loading cached embeddings...")
         return np.load(self.embedding_file), np.load(self.filename_file)
     
     def load_video_embeddings(self):
         print("Loading cached embeddings...")
-        return np.load(self.video_embedding_file), np.load(self.video_filename_file)
+        return np.load(self.video_embedding_file), np.load(self.video_timestamp_file)
     
     def find_top_matches(self, prompt):
-        matcher = MeanMatcher(self.image_embeddings, self.get_text_features(prompt))
-        selected_imgs, similarities = matcher.match(self.image_filenames)[:self.top_k]
+        matcher = MeanMatcher(self.all_embeddings, self.get_text_features(prompt))
+        selected_imgs_vid, similarities = matcher.match(self.all_filenames_time_stamps, self.top_k)
 
         # # Get text features
         # text_features = self.get_text_features()
@@ -170,4 +167,4 @@ class CLIPMatcher:
         # # Get top indices
         # top_indices = np.argsort(similarities)[::-1][:self.top_k] 
         
-        return selected_imgs, similarities
+        return selected_imgs_vid, similarities

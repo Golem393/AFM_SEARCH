@@ -26,9 +26,9 @@ class CLIPLLaVAPipeline:
         print("Running CLIP matcher...")
         clip_matcher = CLIPMatcher(
             image_video_folder=self.image_video_folder,
-            embedding_folder="/usr/prakt/s0115/AFM_SEARCH/eval_coco/embeddings",
+            embedding_folder="eval_coco/embeddings",
             video_embedder_type = self.video_embedder_type,
-            frames_per_video_clip_max = self.frames_per_video_clip_max
+            frames_per_video_clip_max = self.frames_per_video_clip_max,
             # prompt=prompt,
             # model=self.clip_model,
             top_k=self.top_k
@@ -74,14 +74,14 @@ class CLIPLLaVAPipeline:
         }
 
 if __name__ == "__main__":
-    prompt = "car and sand"
+    prompt = "elephant"
     # Example usage
     pipeline = CLIPLLaVAPipeline(
-        image_folder="/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014",
+        image_video_folder="Thailand/image_video",
         clip_model="ViT-L/14@336px",
         top_k=15,
         video_embedder_type = "keyframe_k_frames",  #"keyframe_k_frames", "uniform_k_frames", "keyframe_average", "uniform_average"
         frames_per_video_clip_max = 20
     )
     
-    results = pipeline.run()
+    results = pipeline.run(prompt)
