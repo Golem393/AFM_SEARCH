@@ -4,12 +4,20 @@ from flask import Flask, request, jsonify
 from concurrent.futures import Future, ThreadPoolExecutor
 from transformers import AutoProcessor, AutoModelForVision2Seq
 
+import argparse
+import os
+
 import threading
 import queue
 from PIL import Image
 
-TOKEN = ''
-PORT = 5004
+# Argparser to start the server on custom port
+parser = argparse.ArgumentParser(description="Run the model server")
+parser.add_argument("--port", type=int, default=5000, help="Port to run the server on")
+args = parser.parse_args()
+
+PORT = args.port # get port
+TOKEN = os.environ.get("HF_TOKEN") # get token from environment
 
 app = Flask(__name__)
 
@@ -153,13 +161,16 @@ def get_paligemma_model_name():
     return jsonify({'clip_model_name': "paligemma-3b-mix-224"})
 
 if __name__ == '__main__':
-    import os
     os.environ['TOKENIZERS_PARALLELISM'] = 'false'
-    initialize_models()
+    
+    if not isinstance(TOKEN, str): raise ValueError(f"No valid token found in environment. See README.md for help.")
+
+    initialize_models() # init models
     
     for _ in range(2):
         threading.Thread(target=clip_worker, daemon=True).start()
     for _ in range(1):
         threading.Thread(target=paligemma_worker, daemon=True).start()
     
-    app.run(host='0.0.0.0', port=PORT)
+    app.run(host='0.0.0.0', port=PORT) # run server
+    print(f"Successfully started model server on localhost:{PORT}")
