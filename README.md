@@ -15,13 +15,14 @@ Git repo of Group 5 for the Practical Course _Applied Foundation Models_
 8. At /LLaVA/llava/eval/run_llava.py insert function `eval_mode_with_loaded` from eval_mode_with_loaded.txt
 
 **Token:**
-A huggingface token and access to the model `google/paligemma-3b-pt-224` is required. 
+
+A Hugging Face token and access to the model `google/paligemma-3b-pt-224` is required. 
 1. [Create a Hugging Face account](https://huggingface.co)
 2. Go to the [model card](https://huggingface.co/google/paligemma-3b-pt-224) of `google/paligemma-3b-pt-224` and request access
-3. Go to your cccount -> Settings -> Access Tokens
+3. Go to your acccount -> Settings -> Access Tokens
 4. Create a token and save it somewhere safe!
 In order not to leak your token, the token needs to be saved in the evironment:
-5. Enter in terminal `export HF_TOKEN=<your_token>`
+5. Enter in your terminal: `export HF_TOKEN=<your_token>`
 6. If you want to save your token for all terminal sessions: `source ~/.bashrc  # or source ~/.zshrc`
 
 ## 🚀 Use Application
