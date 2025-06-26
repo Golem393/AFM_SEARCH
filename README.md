@@ -21,6 +21,7 @@ A Hugging Face token and access to the model `google/paligemma-3b-pt-224` is req
 2. Go to the [model card](https://huggingface.co/google/paligemma-3b-pt-224) of `google/paligemma-3b-pt-224` and request access
 3. Go to your acccount -> Settings -> Access Tokens
 4. Create a token and save it somewhere safe!
+
 In order not to leak your token, the token needs to be saved in the evironment:
 5. Enter in your terminal: `export HF_TOKEN=<your_token>`
 6. If you want to save your token for all terminal sessions: `source ~/.bashrc  # or source ~/.zshrc`
