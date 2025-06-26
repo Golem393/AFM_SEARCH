@@ -65,15 +65,12 @@ class CLIPLLaVAPipeline:
             prompt=self.clip_prompt,
             top_k=self.top_k
         )
-        """git_matcher = GitMatcher(
-            image_folder=self.image_folder,
-            prompt=self.git_prompt,
-            top_k=self.top_k
-        )"""
+
         top_files, top_scores = clip_matcher.find_top_matches()
         output_folder = clip_matcher.output_folder
         #top_files, top_scores = git_matcher.find_top_matches()
         #output_folder = git_matcher.output_folder
+        
         
         # Step 2: Verify matches with LLaVA
         print("\nVerifying matches with LLaVA...")
@@ -97,13 +94,14 @@ class CLIPLLaVAPipeline:
             else:
                 unclear_matches.append(filename)
         
+        
         # Print summary
         print("\n=== Results Summary ===")
         print(f"Total matches from CLIP: {len(top_files)}")
         print(f"Confirmed by LLaVA: {len(confirmed_matches)}")
         print(f"Rejected by LLaVA: {len(rejected_matches)}")
         print(f"Unclear results: {len(unclear_matches)}")
-        
+        '''
         # Create subfolders for confirmed and rejected matches
         confirmed_folder = os.path.join(output_folder, "confirmed")
         rejected_folder = os.path.join(output_folder, "rejected")
@@ -137,22 +135,27 @@ class CLIPLLaVAPipeline:
             prompt=self.clip_prompt,
         )
 
-        
+        '''
+        # Added to ensure that order isn' lost
+        ordered_confirmed = [f for f in top_files if f in confirmed_matches]
+
         return {
-            "confirmed": confirmed_matches,
+            "confirmed": ordered_confirmed,
             "rejected": rejected_matches,
             "unclear": unclear_matches,
-            "all_results": verification_results
+            "all_results": verification_results,
+            "clip": top_files
         }
+        
 
 if __name__ == "__main__":
-    prompt = "the city of Phuket"
+    prompt = "dogs playing at the park"
     # Example usage
     pipeline = CLIPLLaVAPipeline(
-        image_folder="Thailand/image",
+        image_folder="/usr/prakt/s0122/afm/dataset/Flicker8k_Dataset",
         clip_prompt=prompt,
         verification_prompt=f"Does this image show a {prompt}? (answer with 'yes' or 'no')",
-        top_k=10
+        top_k=20
     )
     
     results = pipeline.run()

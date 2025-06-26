@@ -6,7 +6,7 @@ from typing import Dict
 
 class LLaVAVerifier:
     def __init__(self):
-        self.server_url = "http://localhost:5000"
+        self.server_url = "http://localhost:5004"
         adapter = requests.adapters.HTTPAdapter(
             pool_connections=10,
             pool_maxsize=20,

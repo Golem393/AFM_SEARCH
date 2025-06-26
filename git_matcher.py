@@ -14,7 +14,7 @@ class GitMatcher:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         # Prepare file and folder names
-        model_name = requests.get("http://localhost:5000/git/model_name").json()['git_model_name']
+        model_name = requests.get("http://localhost:5004/git/model_name").json()['git_model_name']
         model_name_safe = model_name.replace("/", "_")
         self.prompt_name_safe = self.prompt.replace(" ", "_")
         self.base_folder = os.path.join(self.image_folder, "..")
@@ -25,7 +25,7 @@ class GitMatcher:
 
     def compute_caption_from_server(self, image_path):
         try:
-            response = requests.post("http://localhost:5000/git/caption", json={
+            response = requests.post("http://localhost:5004/git/caption", json={
                 "image_path": image_path
             })
             response.raise_for_status()
