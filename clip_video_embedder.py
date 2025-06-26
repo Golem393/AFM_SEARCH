@@ -42,7 +42,7 @@ class CLIPVideoEmbedder:
             embeddings = self.embed_frames(frames)
             video_key_frame_codes = []
             for i, _ in enumerate(timestamps):
-                video_key_frame_codes[i] = video_name + "_" + str(timestamps[i])
+                video_key_frame_codes.append(video_name + "_" + str(timestamps[i]))
             return embeddings, video_key_frame_codes
         
         elif self.video_embedder_type == "keyframe_k_frames":
@@ -62,12 +62,28 @@ class CLIPVideoEmbedder:
     def extract_uniform_frames(self, video_path: str, max_frames: int = 16) -> List[Image.Image]:
         """Extract uniformly spaced frames using decord, based on video duration"""
         vr = decord.VideoReader(video_path)
-        duration = len(vr) / vr.get_avg_fps()
-        num_frames = max(1, min(max_frames, int(duration / 7))) #every 7 seconds
-        frame_indices = np.linspace(0, len(vr) - 1, num=num_frames, dtype=int)
-        frames = [Image.fromarray(vr[i].asnumpy()) for i in frame_indices]
-        main_keyframe_time = duration / 2.0
-        return frames, main_keyframe_time
+        fps = vr.get_avg_fps()
+        total_frames = len(vr)
+        duration = total_frames / fps
+
+        # Choose number of frames to extract (every 7 seconds or max_frames)
+        num_frames = max(1, min(max_frames, int(duration / 7)))  # 1 frame every ~7s
+
+        if num_frames == 1:
+            frame_indices = [total_frames // 2]
+        else:
+            # Avoid starting exactly at 0. Space samples at segment centers
+            segment_length = total_frames / num_frames
+            frame_indices = [int((i + 0.5) * segment_length) for i in range(num_frames)]
+            frame_indices = [min(idx, total_frames - 1) for idx in frame_indices]  # clamp
+
+        frames = [Image.fromarray(vr[idx].asnumpy()) for idx in frame_indices]
+        timestamps = [idx / fps for idx in frame_indices]
+
+        # Middle timestamp (best keyframe)
+        main_keyframe_time = timestamps[len(timestamps) // 2]
+
+        return frames, main_keyframe_time, timestamps
 
 
     def _detect_scene_changes_direct(self, video_path: str, threshold: float = 0.05):
