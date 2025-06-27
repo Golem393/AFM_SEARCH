@@ -1,7 +1,7 @@
 # %%
-import os
-import json
 from pprint import pprint
+from pathlib import Path
+import json
 
 def open_json_file(file_path)->dict:
     """Open a JSON file and return its content.
@@ -16,9 +16,8 @@ def open_json_file(file_path)->dict:
             ...,
     }}
     """
-    if os.path.exists(file_path):
-        with open(file_path, 'r') as f:
-            all_models_progress = json.load(f)
+    with open(file_path, 'r') as f:
+        all_models_progress = json.load(f)
         
     return all_models_progress
 
@@ -35,7 +34,7 @@ def calc_metrics(results:dict)->tuple[dict, int]:
     return results, captions, images
 
 #%%
-JSON_RESULTS_FILE = "benchmarks/eval_progress_pali_10000.json"
+JSON_RESULTS_FILE = Path("benchmarks/eval_progress_pali_10000.json")
 normalized_results, samples, images = calc_metrics(open_json_file(JSON_RESULTS_FILE))                    
 # %%
 print(f"Metrics for {samples} captions")
