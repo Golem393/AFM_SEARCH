@@ -28,8 +28,8 @@ class PaliGemmaVerifier:
         raw_results = response.json()["results"] 
         
         elapsed_time = time.time() - start_time
-        # print(f"Batch processing completed in {elapsed_time:.2f}s")
-        # print(f"Average time per image: {elapsed_time/len(image_paths):.2f}s")
+        print(f"Batch processing completed in {elapsed_time:.2f}s")
+        print(f"Average time per image: {elapsed_time/len(image_paths):.2f}s")
         
         # convert results to list format: [[<prompt>], [<answer>]]
         results = [r.split('\n') for r in raw_results]

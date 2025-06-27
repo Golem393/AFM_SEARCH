@@ -12,11 +12,9 @@ from pathlib import Path
 import json
 import time
 
-PATH_ANNOTATIONS = Path("/storage/group/dataset_mirrors/old_common_datasets/coco/annotations")
-PATH_EMBEDDINGS = Path("/embeddings")
-PATH_IMAGES = Path("/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014")
-PATH_RESULTS = Path("/benchmark")
-FILE_CAPTIONS = Path("/usr/prakt/s0122/afm/dataset/flickr8k/flickr8k_captions.json")
+PATH_EMBEDDINGS = Path("embeddings/")
+PATH_RESULTS = Path("benchmark/")
+FILE_CAPTIONS = Path("embeddings/flickr8k_captions.json")
 
 
 embedder = SentenceTransformer("all-mpnet-base-v2") #best

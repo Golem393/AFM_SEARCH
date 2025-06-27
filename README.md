@@ -4,7 +4,7 @@ Git repo of Group 5 for the Practical Course _Applied Foundation Models_
 
 ## 🔧 Setup 
 
-**Installation:**
+**LLaVA Installation:**
 1. Clone LLaVA Folder into same directory as files: `git clone https://github.com/haotian-liu/LLaVA.git`
 2. `cd LLaVA`
 3. `pip install --upgrade pip` (enables PEP 660 support)
@@ -13,6 +13,11 @@ Git repo of Group 5 for the Practical Course _Applied Foundation Models_
 6. `pip install flash-attn --no-build-isolation` (optional)
 7. `pip install -r requirements.txt`
 8. At /LLaVA/llava/eval/run_llava.py insert function `eval_mode_with_loaded` from eval_mode_with_loaded.txt
+
+**PaliGemma Installation:**
+1. Clone this repo: `git clone -b paligemma --single-branch https://github.com/Golem393/AFM_SEARCH.git`
+2. To create an environment cuda is required, ensure that cuda 12.1 is installed
+3. Create conda environment with provided env.yml `conda env create -f env.yml`
 
 **Token:**
 

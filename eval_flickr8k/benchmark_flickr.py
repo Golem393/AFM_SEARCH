@@ -1,7 +1,7 @@
 """
 Benchmarking script for evaluating the models of the project on to the flickr8k dataset.
 
->>> python eval_coco/benchmark_coco.py --port 5000 
+>>> python eval_coco/benchmark_flickr8k.py --port 5000 
 """
 
 from pathlib import Path
@@ -88,7 +88,7 @@ def main():
     FOLDER_IMAGES = Path("/usr/prakt/s0122/afm/dataset/flickr8k/Flicker8k_Dataset")
     FOLDER_EMBEDDINGS = Path("embeddings/")
     
-    FILE_CAPTIONS = Path("/usr/prakt/s0122/afm/dataset/flickr8k/flickr8k_captions.json")
+    FILE_CAPTIONS = Path("embeddings/flickr8k_captions.json")
     # init caption embedding for precision ground truth 
     TOP_K = 30
     
@@ -140,6 +140,14 @@ def main():
                 matches_clip_path = [str(Path(FOLDER_IMAGES).joinpath(Path(str(name)))) for name in matches_clip]
                 
                 results_paligemma = paligemma.verify_batch(matches_clip_path, caption)
+
+                confirmed, rejected, _ = paligemma.corssref_results(results_paligemma, matches_clip)
+
+                # Log results:
+                LOG_PATH = Path("benchmarks/log.txt")
+                with open(LOG_PATH, 'a') as file:
+                    line = f"{caption.strip()} target:{img_name} confirmed:{confirmed} rejected:{rejected} clip:{matches_clip}\n"
+                    file.write(line)
                 
                 results_paligemma_dict = dict(zip(matches_clip_path, results_paligemma))
                 
