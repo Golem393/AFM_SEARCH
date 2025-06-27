@@ -4,6 +4,10 @@ eval_coco/embeddings
 eval_coco/output
 eval_coco/subsets
 
+eval_flickr8k/benchmarks
+eval_flickr8k/embeddings
+eval_flickr8k/output
+eval_flickr8k/subsets
 
 
 # python.gitignore template by github.com/github/gitignore
