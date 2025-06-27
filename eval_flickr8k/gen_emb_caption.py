@@ -8,26 +8,30 @@ Utility script for generating caption embeddings of ALL COCO Images.
 #%%
 from caption_embedder import save_embeddings, load_embeddings, find_similar_images
 from sentence_transformers import SentenceTransformer
-from coco_extractor import COCOCaptionExtractor
 from pathlib import Path
+import json
 import time
 
 PATH_ANNOTATIONS = Path("/storage/group/dataset_mirrors/old_common_datasets/coco/annotations")
 PATH_EMBEDDINGS = Path("/embeddings")
 PATH_IMAGES = Path("/storage/group/dataset_mirrors/old_common_datasets/coco/images/train2014")
 PATH_RESULTS = Path("/benchmark")
+FILE_CAPTIONS = Path("/usr/prakt/s0122/afm/dataset/flickr8k/flickr8k_captions.json")
+
 
 embedder = SentenceTransformer("all-mpnet-base-v2") #best
 # model2 = SentenceTransformer("all-MiniLM-L6-v2") #5 times faster according to the internet
 # embeddings = embedder.encode(sentences)
 # similarities = embedder.similarity(embeddings, embeddings)
 
-extractor = COCOCaptionExtractor(PATH_ANNOTATIONS, PATH_IMAGES)    
-captions = extractor.get_all_captions()#[:1000]
+with open(FILE_CAPTIONS, 'r') as f:
+    file_name_captions_dict =  json.load(f)
+      
+
 #%%
 start = time.time()
 
-save_embeddings(extractor, embedder, PATH_EMBEDDINGS)
+save_embeddings(file_name_captions_dict, embedder, PATH_EMBEDDINGS)
 
 print(f"Time taken: {time.time() - start:.2f} seconds")
 

@@ -6,14 +6,13 @@ Utility functions for saving, loading and find similar caption embedding of the 
 
 from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
-from coco_extractor import COCOCaptionExtractor
 from typing import List, Optional, Dict
 from pathlib import Path
 import numpy as np
 import h5py
 
 
-def save_embeddings(extractor: COCOCaptionExtractor, 
+def save_embeddings(caption_pairs:Dict, 
                     embedder: SentenceTransformer, 
                     embedding_folder: Path,
                     name_addition: str = None,
@@ -33,7 +32,6 @@ def save_embeddings(extractor: COCOCaptionExtractor,
     Returns:
         None: The function saves the embeddings to a file in the specified directory.
     """
-    all_captions = extractor.get_all_captions()
     if name_addition is not None:
         filename = embedding_folder / f"caption_embeddings_{name_addition}.h5"
     else:
@@ -51,7 +49,7 @@ def save_embeddings(extractor: COCOCaptionExtractor,
                 caption_key = Path(path_obj).name 
                 
                 # Encode captions of current image
-                embeddings = [embedder.encode(caption) for caption in all_captions[caption_key]]
+                embeddings = [embedder.encode(caption) for caption in caption_pairs[caption_key]]
                 
                 # Convert to a NumPy array
                 embeddings_array = np.array(embeddings, dtype=np.float32)
@@ -67,7 +65,7 @@ def save_embeddings(extractor: COCOCaptionExtractor,
                 caption_key = Path(path_obj).name 
                 
                 # Encode captions of current image
-                embeddings = [embedder.encode(caption) for caption in all_captions[caption_key]]
+                embeddings = [embedder.encode(caption) for caption in caption_pairs[caption_key]]
                 
                 # Convert to a NumPy array
                 embeddings_array = np.array(embeddings, dtype=np.float32)
