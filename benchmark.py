@@ -1,7 +1,7 @@
 """
     Performs several automated benchmarks using the current pipeline
 """
-from pipeline2 import CLIPLLaVAPipeline
+from pipeline2 import ClipPaliGemmaPipeline
 import json
 import os
 
@@ -27,7 +27,7 @@ def benchmark_rk(name):
     results_path = os.path.join(BENCHMARK_FOLDER, f"recall_at_k_{name}.txt")
 
     # get matches top 30 for the ground truth
-    pipeline = CLIPLLaVAPipeline(
+    pipeline = ClipPaliGemmaPipeline(
         image_folder=IMAGE_FOLDER,
         verification_prompt=None,
         top_k_clip_matches=30

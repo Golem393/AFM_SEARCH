@@ -1,8 +1,9 @@
 from clip_matcher import CLIPMatcher
 from paligemma_runner import PaliGemmaVerifier
 import os
+from pprint import pprint
 
-class CLIPLLaVAPipeline:
+class ClipPaliGemmaPipeline:
     def __init__(self, image_folder, verification_prompt, top_k_clip_matches):
         self.image_folder = image_folder
         self.verification_prompt = verification_prompt #TODO: currently implemented on the server
@@ -27,7 +28,10 @@ class CLIPLLaVAPipeline:
         print("Verifying matches with PaliGemma")
         verifier = PaliGemmaVerifier()
         verdict = verifier.verify_batch(image_paths, prompt)
-
+        
+        pprint("PaliGemma verification results:")
+        pprint(verdict)
+        
         # cross reference vlm verdict with clip top matches
         confirmed_matches, rejected_matches, unclear_matches = verifier.corssref_results(verdict, top_files)    
         
@@ -49,7 +53,7 @@ class CLIPLLaVAPipeline:
 if __name__ == "__main__":
     prompt = "dogs playing at the park"
     # Example usage
-    pipeline = CLIPLLaVAPipeline(
+    pipeline = ClipPaliGemmaPipeline(
         image_folder="/usr/prakt/s0122/afm/dataset/cc3m/cc3m_0000/",
         verification_prompt=None,
         top_k_clip_matches=30

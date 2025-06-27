@@ -96,13 +96,12 @@ def verify_batch(batch):
     images = [Image.open(item["image_path"]).convert("RGB") for item in batch]
 
     inputs = paligemma_processor(images=images, text=prompts, return_tensors="pt", padding=True).to(paligemma_device)
-
+    
     with torch.no_grad():
         outputs = paligemma_model.generate(**inputs, max_new_tokens=5)
     
     # decode results
     results = paligemma_processor.batch_decode(outputs, skip_special_tokens=True) 
-    
     #paligemma returns original prompt with answer which is in a new line
     return [res.strip() for res in results]
 

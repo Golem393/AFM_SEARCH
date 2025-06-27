@@ -2,8 +2,9 @@ import requests
 import time
 
 class PaliGemmaVerifier:
-    def __init__(self, server_url="http://localhost:5004"):
-        self.server_url = server_url
+    def __init__(self, 
+                 port:int=5000):
+        self.server_url = f"http://localhost:{port}"
 
     def verify(self, image_path, prompt):
         return self.verify_batch([image_path], prompt)
@@ -14,7 +15,7 @@ class PaliGemmaVerifier:
         if not isinstance(prompt, str):
             raise ValueError("prompt must be a string")
 
-        print(f"Process {len(image_paths)} images in one batch.")
+        # print(f"Process {len(image_paths)} images in one batch.")
         start_time = time.time()
 
         items = [{"image_path": img, "prompt": prompt} for img in image_paths]
@@ -27,8 +28,8 @@ class PaliGemmaVerifier:
         raw_results = response.json()["results"] 
         
         elapsed_time = time.time() - start_time
-        print(f"Batch processing completed in {elapsed_time:.2f}s")
-        print(f"Average time per image: {elapsed_time/len(image_paths):.2f}s")
+        # print(f"Batch processing completed in {elapsed_time:.2f}s")
+        # print(f"Average time per image: {elapsed_time/len(image_paths):.2f}s")
         
         # convert results to list format: [[<prompt>], [<answer>]]
         results = [r.split('\n') for r in raw_results]
