@@ -234,13 +234,13 @@ def main():
                 results_dict["clip+git+llava"]["precision@"]["10"] +=  precision_at_k(ground_truth, matches_llava_both, 10)
                 
                 results_dict["total_captions_processed"] += 1
-                save_json_file(FILE_PROGRESS, results_dict)
-                
+                                
             except Exception as e:
                 print(f"Error processing image {img_name} with caption '{caption}': {e}")
                 continue
             
         results_dict["last_processed_index"] += 1
+        save_json_file(FILE_PROGRESS, results_dict)
         
 if __name__ == "__main__":
     main()
