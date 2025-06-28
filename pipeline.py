@@ -80,7 +80,7 @@ if __name__ == "__main__":
         image_video_folder="Thailand/image_video",
         clip_model="ViT-L/14@336px",
         top_k=15,
-        video_embedder_type = "keyframe_k_frames",  #"keyframe_k_frames", "uniform_k_frames", "keyframe_average", "uniform_average"
+        video_embedder_type = "keyframe_k_frames",  #"keyframe_k_frames", "uniform_k_frames", "keyframe_average", "uniform_average", "optical_flow" "clip_k_frames"
         frames_per_video_clip_max = 20
     )
     

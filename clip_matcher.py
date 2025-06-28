@@ -4,7 +4,7 @@ import numpy as np
 import shutil
 from matching_algorithms import MeanMatcher, ParetoFrontMatcher
 import requests
-from clip_video_embedder import CLIPVideoEmbedder
+from video.clip_video_embedder import CLIPVideoEmbedder
 from pathlib import Path
 import requests
 import torch
@@ -44,7 +44,7 @@ class CLIPMatcher:
         
         model_name = requests.get(f"http://localhost:{self.port}/clip/model_name").json()['clip_model_name']
         model_name_safe = model_name.replace("/", "_")
-        self.clip_video_embedder = CLIPVideoEmbedder(self.video_embedder_type, frames_per_video_clip_max)
+        self.clip_video_embedder = CLIPVideoEmbedder(self.video_embedder_type, frames_per_video_clip_max, self.server_url)
         if self.subset is None:
             self.embedding_file = os.path.join(self.embedding_folder, f"{model_name_safe}_embeddings.npy")
             self.video_embedding_file = os.path.join(self.embedding_folder, f"{model_name_safe}_{self.video_embedder_type}_embeddings.npy")
