@@ -2,6 +2,11 @@ import requests
 import time
 
 class PaliGemmaVerifier:
+    """Client-side Paligemma class
+
+    args:
+        port: int Port the server runs on.
+    """
     def __init__(self, 
                  port:int=5000):
         self.server_url = f"http://localhost:{port}"
@@ -10,10 +15,10 @@ class PaliGemmaVerifier:
         return self.verify_batch([image_path], prompt)
 
     def verify_batch(self, image_paths, prompt: str):
-        """Verify images as a batch in one forward pass."""
+        """Verify images or video frames as a batch in one forward pass."""
 
         if not isinstance(prompt, str):
-            raise ValueError("prompt must be a string")
+            raise ValueError("Prompt must be a string")
 
         # print(f"Process {len(image_paths)} images in one batch.")
         start_time = time.time()
@@ -39,7 +44,9 @@ class PaliGemmaVerifier:
         return [res[-1] if isinstance(res, list) else "error" for res in results]
     
     def corssref_results(self, verdicts, image_paths):
+        """Method for referencing PaliGemma's output with the verified images and videos
         
+        """
         confirmed = []
         rejected = []
         unclear = []
@@ -47,6 +54,9 @@ class PaliGemmaVerifier:
         # Ensure that verdicts and image paths are lists
         if not isinstance(verdicts, list): list(verdicts)
         if not isinstance(image_paths, list): list(image_paths)
+
+        # Check for results inputs mismatch
+        assert len(verdicts)==len(image_paths)
 
         for r, image in zip(verdicts, image_paths):
             r = r.lower()

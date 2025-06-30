@@ -68,7 +68,7 @@ class CLIPLLaVAPipeline:
                 unclear_matches.append(filename)
                
         return {
-            "confirmed": ordered_confirmed,
+            "confirmed": confirmed_matches,
             "rejected": rejected_matches,
             "unclear": unclear_matches,
             "all_results": verification_results,

@@ -95,18 +95,39 @@ def paligemma_worker():
 
 def verify_batch(batch):
     prompts = [f"Is '{item['prompt']}' a fitting description of the image? Answer only with yes or no!" for item in batch]
-    images = [Image.open(item["image_path"]).convert("RGB") for item in batch]
-
-    inputs = paligemma_processor(images=images, text=prompts, return_tensors="pt", padding=True).to(paligemma_device)
     
+    # check if image or if video keyframe by inspecting path:
+    images_keyframes = []
+    # iterate through every item in list
+    for item in batch:
+        img_keyframe_path = item["image_path"]
+        # item is image
+        if img_keyframe_path.lower().endswith(('.png', '.jpg', '.jpeg')):
+            images_keyframes.append(Image.open(img_keyframe_path).convert("RGB"))
+        
+        # item is video keyframe
+        elif ".mp4" in img_keyframe_path.lower():
+            try:
+                # keyframe items have the structure: <path>/<video_name>.mp4_timestamp
+                video_path, timestamp_str = img_keyframe_path.rsplit(".mp4_", 1) 
+                timestamp = float(timestamp_str)
+                video_path = f"{video_path}.mp4"
+                images_keyframes.append(extract_frame_at_timestamp(video_path, timestamp))
+            
+            except Exception as e:
+                print(f"Failed to process video {video_path}: {e}")
+
+    # preprocess
+    inputs = paligemma_processor(images=images_keyframes, text=prompts, return_tensors="pt", padding=True).to(paligemma_device)
+    
+    # forward pass
     with torch.no_grad():
         outputs = paligemma_model.generate(**inputs, max_new_tokens=5)
     
     # decode results
     results = paligemma_processor.batch_decode(outputs, skip_special_tokens=True) 
-    #paligemma returns original prompt with answer which is in a new line
+    #paligemma returns original prompt with answer which is in a new line: <pormpt>\n<answer>
     return [res.strip() for res in results]
-
 
 @app.route('/clip/embed_image', methods=['POST'])
 def embed_image():
