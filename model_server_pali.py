@@ -7,6 +7,8 @@ from transformers import AutoProcessor, AutoModelForVision2Seq
 import argparse
 import os
 
+import cv2
+
 import threading
 import queue
 from PIL import Image
@@ -150,6 +152,19 @@ def pgemma_verify_batch():
         return jsonify({"results": result})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+def extract_frame_at_timestamp(video_path, timestamp):
+    cap = cv2.VideoCapture(video_path)
+    cap.set(cv2.CAP_PROP_POS_MSEC, timestamp * 1000)
+
+    success, frame = cap.read()
+    cap.release()
+
+    if not success or frame is None:
+        raise RuntimeError(f"Could not read frame at {timestamp:.2f}s")
+
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    return Image.fromarray(frame_rgb)
     
 @app.route('/clip/model_name', methods=['GET'])
 def get_clip_model_name():

@@ -14,19 +14,20 @@ class ClipPaliGemmaPipeline:
         # Step 1: Run CLIP matcher to find top matches
         print("Running CLIP matcher...")
         clip_matcher = CLIPMatcher(
-            image_folder=self.image_folder,
-            prompt=prompt,
-            top_k=self.top_k_clip_matches
+            image_video_folder=self.image_folder,
+            embedding_folder='/usr/prakt/s0122/afm/dataset/cc3m/',
+            top_k=self.top_k_clip_matches,
+            port=5004
         )
 
-        top_files, top_scores = clip_matcher.find_top_matches()
-        image_folder = clip_matcher.image_folder
+        top_files, top_scores = clip_matcher.find_top_matches(prompt)
+        image_folder = clip_matcher.image_video_folder
 
         image_paths = [os.path.join(image_folder, file) for file in top_files]
         
         # Step 2: Verify matches with PaliGemma
         print("Verifying matches with PaliGemma")
-        verifier = PaliGemmaVerifier()
+        verifier = PaliGemmaVerifier(port=5004)
         verdict = verifier.verify_batch(image_paths, prompt)
         
         pprint("PaliGemma verification results:")

@@ -64,9 +64,23 @@ class CLIPMatcher:
         else:
             self.video_embeddings, self.video_timestamps = self.compute_video_embeddings()
 
-        self.all_embeddings = np.concatenate([self.image_embeddings, self.video_embeddings], axis=0)
-        self.all_filenames_time_stamps = list(self.image_filenames) + list(self.video_timestamps)
-        print(f"Done") if self.print_progress else None
+        # Check what type of embeddings are avilable: img + video OR only image/video OR none
+        if self.image_embeddings is not None and self.video_embeddings is not None:
+            # video embeddings AND image embeddings
+            self.all_embeddings = np.concatenate([self.image_embeddings, self.video_embeddings], axis=0)
+            self.all_filenames_time_stamps = list(self.image_filenames) + list(self.video_timestamps)
+            print("Loaded video AND image embeddings")
+        
+        elif self.image_embeddings is not None or self.video_embeddings is not None:
+            # video embeddings OR image embeddings
+            self.all_embeddings = self.image_embeddings if self.image_embeddings is not None else self.video_embeddings
+            self.all_filenames_time_stamps = self.image_filenames if self.image_embeddings is not None else self.video_timestamps
+            print("Loaded ONLY image embeddings") if self.image_embeddings is not None else print("Loaded ONLY video embeddings")
+
+        else:
+            # NO video embeddings AND image embeddings
+            self.all_embeddings = None
+            self.all_filenames_time_stamps = None
 
     def get_image_embedding(self, image_path):
         response = requests.post(
@@ -107,12 +121,21 @@ class CLIPMatcher:
                 if i % 1000 == 0 and self.print_progress:
                     print(f"Processed {i} images...")
 
-        image_embeddings = np.vstack(image_embeddings)
-        image_filenames = np.array(image_filenames)
+        # Check if images were found and corresponding embeddings were computed:
+        if image_filenames:
+            # image embeddings were computed
+            image_embeddings = np.vstack(image_embeddings)
+            image_filenames = np.array(image_filenames)
 
-        np.save(self.embedding_file, image_embeddings)
-        np.save(self.filename_file, image_filenames)
-        print(f"Done") if self.print_progress else None
+            # save embeddings and corresponding filenames
+            np.save(self.embedding_file, image_embeddings)
+            np.save(self.filename_file, image_filenames)
+            print(f"Saved image embeddings") if self.print_progress else None
+        
+        else:
+            # if no image embeddings were computed
+            image_embeddings, image_filenames = None, None
+            print(f"No images found") if self.print_progress else None
 
         return image_embeddings, image_filenames
     
@@ -135,11 +158,21 @@ class CLIPMatcher:
                     video_embeddings.append(video_features[i])
                     video_codes.append(video_timestamps[i])
 
-        video_embeddings = np.vstack(video_embeddings)
-        video_codes = np.array(video_codes)
+        # Check if videos were found and corresponding embeddings were computed:
+        if video_codes:
+            # video embeddings were computed
+            video_embeddings = np.vstack(video_embeddings)
+            video_codes = np.array(video_codes)
 
-        np.save(self.video_embedding_file, video_embeddings)
-        np.save(self.video_timestamp_file, video_codes)
+            # save video embeddings and corresponding filename+timestamp
+            np.save(self.video_embedding_file, video_embeddings)
+            np.save(self.video_timestamp_file, video_codes)
+            print(f"Saved video embeddings") if self.print_progress else None
+
+        else:
+            # if no video embeddings were computed
+            video_embeddings, video_codes = None, None
+            print(f"No videos found") if self.print_progress else None
 
         return video_embeddings, video_codes
 
@@ -152,6 +185,11 @@ class CLIPMatcher:
         return np.load(self.video_embedding_file), np.load(self.video_timestamp_file)
     
     def find_top_matches(self, prompt):
+        
+        # Check if there are no embeddings and return None to avoid crash
+        if self.all_embeddings is None:
+            return None, None
+
         matcher = MeanMatcher(self.all_embeddings, self.get_text_features(prompt))
         selected_imgs_vid, similarities = matcher.match(self.all_filenames_time_stamps, self.top_k)
 
