@@ -71,6 +71,7 @@ def precision_at_k(groundtruth: list, results: list, k: int) -> float:
         float: The precision score @ k.
     """
     groundtruth_set = set(groundtruth)
+    k = min(k, len(results))
     top_k_results = results[:k]
     hits = sum(1 for item in top_k_results if item in groundtruth_set)
     return hits / k
