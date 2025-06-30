@@ -35,4 +35,8 @@ print(f"Time taken: {time.time() - start:.2f} seconds")
 # start = time.time()
 # all_embeddings = load_embeddings(PATH_EMBEDDINGS)
 # print(f"Loaded {len(all_embeddings)} total embeddings.")
+<<<<<<< HEAD
 # print(f"Time taken: {time.time() - start:.2f} seconds")
+=======
+# print(f"Time taken: {time.time() - start:.2f} seconds")
+>>>>>>> eval_video

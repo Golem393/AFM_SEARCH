@@ -221,4 +221,8 @@ def find_similar_images(
         num_to_keep = max(1, int(len(path_score_pairs) * top_percent / 100))
         filtered_pairs = path_score_pairs[:num_to_keep]
 
+<<<<<<< HEAD
     return filtered_pairs if return_scores else [path for path, _ in filtered_pairs] 
+=======
+    return filtered_pairs if return_scores else [path for path, _ in filtered_pairs] 
+>>>>>>> eval_video
