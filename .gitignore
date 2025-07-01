@@ -1,4 +1,7 @@
 LLaVA/
+Thailand/
+eval_msr_vtt/video/
+eval_msr_vtt/embed/
 eval_coco/benchmarks
 eval_coco/embeddings
 eval_coco/output

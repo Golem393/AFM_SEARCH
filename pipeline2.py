@@ -24,7 +24,7 @@ class CLIPPaliGemmaPipeline:
         print("Running CLIP matcher...")
         clip_matcher = CLIPMatcher(
             image_video_folder=self.gallery,
-            embedding_folder='/usr/prakt/s0122/afm/dataset/cc3m/',
+            embedding_folder='eval_msr_vtt/embed',
             top_k=self.top_k_clip_matches,
             port=self.port,
             video_embedder_type=self.video_embedder_type,
@@ -67,11 +67,11 @@ if __name__ == "__main__":
     prompt = "dogs playing at the park"
     # Example usage
     pipeline = CLIPPaliGemmaPipeline(
-        gallery="/usr/prakt/s0122/afm/dataset/cc3m/cc3m_0000/",
+        gallery="Thailand/image_video",
         top_k_clip_matches=30, 
         video_embedder_type = "keyframe_k_frames",  #"keyframe_k_frames", "uniform_k_frames", "keyframe_average", "uniform_average", "optical_flow" "clip_k_frames"
         frames_per_video_clip_max = 20,
-        port=5004
+        port=5000
     )
     
     results = pipeline.run(prompt)
