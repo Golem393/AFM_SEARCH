@@ -30,7 +30,8 @@ def open_json_file(file_path)->dict:
         "total_captions_processed": 0,
         "clip": {
             "recall@": {"1": 0,"5": 0,"10": 0},
-            "precision@": {"1": 0.0,"5": 0.0,"10": 0.0}
+            "precision@": {"1": 0.0,"5": 0.0,"10": 0.0},
+            "accuracy": 0
             },
             ...,
     }}
@@ -45,7 +46,8 @@ def open_json_file(file_path)->dict:
             "total_captions_processed": 0,
              **{model_name : {
                 "recall@": {"1": 0, "5": 0, "10": 0},
-                "precision@": {"1": 0.0, "5": 0.0, "10": 0.0}
+                "precision@": {"1": 0.0, "5": 0.0, "10": 0.0},
+                "accuracy": 0.0
             } for model_name in model_names}
         }
         
@@ -75,6 +77,28 @@ def precision_at_k(groundtruth: list, results: list, k: int) -> float:
     top_k_results = results[:k]
     hits = sum(1 for item in top_k_results if item in groundtruth_set)
     return hits / k
+
+def accuracy(groundtruth: list, results: list, all_files: list) -> float:
+    """Calculates the accuracy
+
+    Args:
+        groundtruth (list): The list of all relevant, correct item identifiers.
+        results (list): The list of predicted item identifiers, ordered by confidence score.
+        all_files (list): List of all files
+
+    Returns: 
+        accuracy (float): accuracy
+    """
+    set_grountruth = set(groundtruth)
+    set_results = set(results)
+    set_all = set(all_files)
+
+    true_positive = set_results & set_grountruth    
+    true_negative = (set_all - set_grountruth) & (set_all - set_results)
+    accuracy = (len(true_positive) + len(true_negative)) / len(set_all)
+
+    return accuracy
+
 
 def load_list_from_txt(filename: str) -> list[str]:
     with open(filename, 'r') as f:
@@ -112,6 +136,7 @@ def main():
         FILE_EMBEDDING_SUBSET = Path(f"embeddings/caption_embeddings_{subset}.h5")
         preloaded_caption_embeddings = load_embeddings(FILE_EMBEDDING_SUBSET)
         files = sorted(load_list_from_txt(f"subsets/subset_{subset}.txt"))
+        all_filenames = [Path(file).name for file in files]
         
         clip_matcher = CLIPMatcher(
             image_folder=FOLDER_IMAGES,
@@ -136,6 +161,7 @@ def main():
         FILE_EMBEDDING = Path("embeddings/caption_embeddings.h5")
         preloaded_caption_embeddings = load_embeddings(FILE_EMBEDDING)
         files = sorted(list(coco_extractor.get_all_filepaths()))
+        all_filenames = [Path(file).name for file in files]
         clip_matcher = CLIPMatcher(
             image_folder=FOLDER_IMAGES,
             embedding_folder=FOLDER_EMBEDDINGS,
@@ -179,6 +205,8 @@ def main():
                 results_dict["clip"]["precision@"]["1"] += precision_at_k(ground_truth, matches_clip, 1)
                 results_dict["clip"]["precision@"]["5"] +=  precision_at_k(ground_truth, matches_clip, 5)
                 results_dict["clip"]["precision@"]["10"] +=  precision_at_k(ground_truth, matches_clip, 10)
+                
+                results_dict["clip"]["accuracy"] += accuracy(ground_truth, matches_clip, all_filenames)
 
                 
                 results_dict["git"]["recall@"]["1"] += img_name in matches_git[:1]
@@ -189,6 +217,7 @@ def main():
                 results_dict["git"]["precision@"]["5"] +=  precision_at_k(ground_truth, matches_git, 5)
                 results_dict["git"]["precision@"]["10"] +=  precision_at_k(ground_truth, matches_git, 10)
 
+                results_dict["git"]["accuracy"] += accuracy(ground_truth, matches_git, all_filenames)
                 
                 results_dict["clip+git"]["recall@"]["1"] += img_name in matches_both[:1]
                 results_dict["clip+git"]["recall@"]["5"] += img_name in matches_both[:5]
@@ -197,6 +226,8 @@ def main():
                 results_dict["clip+git"]["precision@"]["1"] += precision_at_k(ground_truth, matches_both, 1)
                 results_dict["clip+git"]["precision@"]["5"] +=  precision_at_k(ground_truth, matches_both, 5)
                 results_dict["clip+git"]["precision@"]["10"] +=  precision_at_k(ground_truth, matches_both, 10)
+                
+                results_dict["clip+git"]["accuracy"] += accuracy(ground_truth, matches_both, all_filenames)
                 
                 matches_llava = llava.verify_images(FOLDER_IMAGES, 
                                     matches_both, 
@@ -216,6 +247,7 @@ def main():
                 results_dict["clip+llava"]["precision@"]["5"] +=  precision_at_k(ground_truth, matches_llava_clip, 5)
                 results_dict["clip+llava"]["precision@"]["10"] +=  precision_at_k(ground_truth, matches_llava_clip, 10)
                 
+                results_dict["clip+llava"]["accuracy"] += accuracy(ground_truth, matches_llava_clip, all_filenames)
                 
                 results_dict["git+llava"]["recall@"]["1"] += img_name in matches_llava_git[:1]
                 results_dict["git+llava"]["recall@"]["5"] += img_name in matches_llava_git[:5]
@@ -225,7 +257,8 @@ def main():
                 results_dict["git+llava"]["precision@"]["5"] +=  precision_at_k(ground_truth, matches_llava_git, 5)
                 results_dict["git+llava"]["precision@"]["10"] +=  precision_at_k(ground_truth, matches_llava_git, 10)
                 
-                
+                results_dict["git+llava"]["accuracy"] += accuracy(ground_truth, matches_llava_git, all_filenames)
+                                
                 results_dict["clip+git+llava"]["recall@"]["1"] += img_name in matches_llava_both[:1]
                 results_dict["clip+git+llava"]["recall@"]["5"] += img_name in matches_llava_both[:5]
                 results_dict["clip+git+llava"]["recall@"]["10"] += img_name in matches_llava_both[:10]
@@ -233,6 +266,9 @@ def main():
                 results_dict["clip+git+llava"]["precision@"]["1"] += precision_at_k(ground_truth, matches_llava_both, 1)
                 results_dict["clip+git+llava"]["precision@"]["5"] +=  precision_at_k(ground_truth, matches_llava_both, 5)
                 results_dict["clip+git+llava"]["precision@"]["10"] +=  precision_at_k(ground_truth, matches_llava_both, 10)
+                
+                results_dict["clip+git+llava"]["accuracy"] += accuracy(ground_truth, matches_llava_both, all_filenames)
+                
                 
                 results_dict["total_captions_processed"] += 1
                                 
