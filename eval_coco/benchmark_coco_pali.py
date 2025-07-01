@@ -30,7 +30,8 @@ def open_json_file(file_path)->dict:
         "total_captions_processed": 0,
         "clip": {
             "recall@": {"1": 0,"5": 0,"10": 0},
-            "precision@": {"1": 0.0,"5": 0.0,"10": 0.0}
+            "precision@": {"1": 0.0,"5": 0.0,"10": 0.0},
+            "accuracy": 0.0
             },
             ...,
     }}
@@ -45,7 +46,8 @@ def open_json_file(file_path)->dict:
             "total_captions_processed": 0,
              **{model_name : {
                 "recall@": {"1": 0, "5": 0, "10": 0},
-                "precision@": {"1": 0.0, "5": 0.0, "10": 0.0}
+                "precision@": {"1": 0.0, "5": 0.0, "10": 0.0},
+                "accuracy": 0.0
             } for model_name in model_names}
         }
         
@@ -75,6 +77,28 @@ def precision_at_k(groundtruth: list, results: list, k: int) -> float:
     top_k_results = results[:k]
     hits = sum(1 for item in top_k_results if item in groundtruth_set)
     return hits / k
+
+def accuracy(groundtruth: list, results: list, all_files: list) -> float:
+    """Calculates the accuracy
+
+    Args:
+        groundtruth (list): The list of all relevant, correct item identifiers.
+        results (list): The list of predicted item identifiers, ordered by confidence score.
+        all_files (list): List of all files
+
+    Returns: 
+        accuracy (float): accuracy
+    """
+    set_grountruth = set(groundtruth)
+    set_results = set(results)
+    set_all = set(all_files)
+
+    true_positive = set_results & set_grountruth    
+    true_negative = (set_all - set_grountruth) & (set_all - set_results)
+    accuracy = (len(true_positive) + len(true_negative)) / len(set_all)
+
+    return accuracy
+
 
 def load_list_from_txt(filename: str) -> list[str]:
     with open(filename, 'r') as f:
@@ -113,6 +137,9 @@ def main():
         preloaded_caption_embeddings = load_embeddings(FILE_EMBEDDING_SUBSET)
         files = sorted(load_list_from_txt(f"subsets/subset_{subset}.txt"))
         
+        # get all filenames from files for acc calculation
+        all_filenames = [Path(file).name for file in files]
+        
         clip_matcher = CLIPMatcher(
             image_folder=FOLDER_IMAGES,
             embedding_folder=FOLDER_EMBEDDINGS,
@@ -127,6 +154,10 @@ def main():
         FILE_EMBEDDING = Path("embeddings/caption_embeddings.h5")
         preloaded_caption_embeddings = load_embeddings(FILE_EMBEDDING)
         files = sorted(list(coco_extractor.get_all_filepaths()))
+        
+        # get all filenames from files for acc calculation
+        all_filenames = [Path(file).name for file in files]
+        
         clip_matcher = CLIPMatcher(
             image_folder=FOLDER_IMAGES,
             embedding_folder=FOLDER_EMBEDDINGS,
@@ -166,23 +197,16 @@ def main():
                 results_dict["clip"]["precision@"]["5"] +=  precision_at_k(ground_truth, matches_clip, 5)
                 results_dict["clip"]["precision@"]["10"] +=  precision_at_k(ground_truth, matches_clip, 10)
 
-                # pprint(f"matches_clip: {matches_clip}")
-                # pprint(f"caption tho: {caption}")
+                results_dict["clip"]["accuracy"] += accuracy(ground_truth, matches_clip, all_filenames)
                 
                 matches_clip_fullpath = [str(Path(FOLDER_IMAGES).joinpath(Path(str(name)))) for name in matches_clip]
                 
                 results_paligemma = paligemma.verify_batch(matches_clip_fullpath, caption)
                 
-                # pprint(f"PG return: {results_paligemma}")
-                
-                # pprint(f"PG fullpath: {matches_clip_fullpath}")
                 
                 results_paligemma_dict = dict(zip(matches_clip_fullpath, results_paligemma))
-                # pprint(f"PG dict: {results_paligemma_dict}")
                 
                 matches_paligemma = [Path(k).name for k, v in dict(results_paligemma_dict).items() if str(v).strip().lower() == 'yes']
-                # pprint(f"PG matches: {matches_paligemma}")
-                
                 
                 results_dict["clip+paligemma"]["recall@"]["1"] += img_name in matches_paligemma[:1]
                 results_dict["clip+paligemma"]["recall@"]["5"] += img_name in matches_paligemma[:5]
@@ -191,6 +215,8 @@ def main():
                 results_dict["clip+paligemma"]["precision@"]["1"] += precision_at_k(ground_truth,   matches_paligemma, 1)
                 results_dict["clip+paligemma"]["precision@"]["5"] +=  precision_at_k(ground_truth,  matches_paligemma, 5)
                 results_dict["clip+paligemma"]["precision@"]["10"] +=  precision_at_k(ground_truth, matches_paligemma, 10)
+                
+                results_dict["clip+paligemma"]["accuracy"] += accuracy(ground_truth, matches_paligemma, all_filenames)
                 
                 results_dict["total_captions_processed"] += 1
                 
