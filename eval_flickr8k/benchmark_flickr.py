@@ -25,6 +25,7 @@ def open_json_file(file_path)->dict:
         "clip": {
             "recall@": {"1": 0,"5": 0,"10": 0},
             "precision@": {"1": 0.0,"5": 0.0,"10": 0.0}
+            "accuracy": 0
             },
             ...,
     }}
@@ -39,7 +40,8 @@ def open_json_file(file_path)->dict:
             "total_captions_processed": 0,
              **{model_name : {
                 "recall@": {"1": 0, "5": 0, "10": 0},
-                "precision@": {"1": 0.0, "5": 0.0, "10": 0.0}
+                "precision@": {"1": 0.0, "5": 0.0, "10": 0.0},
+                "accuracy": 0.0
             } for model_name in model_names}
         }
         
@@ -65,9 +67,33 @@ def precision_at_k(groundtruth: list, results: list, k: int) -> float:
         float: The precision score @ k.
     """
     groundtruth_set = set(groundtruth)
+    k = min(k, len(results))
     top_k_results = results[:k]
     hits = sum(1 for item in top_k_results if item in groundtruth_set)
     return hits / k
+
+
+def accuracy(groundtruth: list, results: list, all_files: list) -> float:
+    """Calculates the accuracy
+
+    Args:
+        groundtruth (list): The list of all relevant, correct item identifiers.
+        results (list): The list of predicted item identifiers, ordered by confidence score.
+        all_files (list): List of all files
+
+    Returns: 
+        accuracy (float): accuracy
+    """
+    set_grountruth = set(groundtruth)
+    set_results = set(results)
+    set_all = set(all_files)
+
+    true_positive = set_results & set_grountruth    
+    true_negative = (set_all - set_grountruth) & (set_all - set_results)
+    accuracy = (len(true_positive) + len(true_negative)) / len(set_all)
+
+    return accuracy
+
 
 def load_list_from_txt(filename: str) -> list[str]:
     with open(filename, 'r') as f:
@@ -99,9 +125,12 @@ def main():
     FILE_EMBEDDING = Path("embeddings/caption_embeddings.h5")
     preloaded_caption_embeddings = load_embeddings(FILE_EMBEDDING)
     files = sorted([f for f in FOLDER_IMAGES.iterdir() if f.is_file()])
+
+    # get all filenames from files for acc calculation
+    all_filenames = [Path(file).name for file in files]
     
     clip_matcher = CLIPMatcher(
-        image_folder=FOLDER_IMAGES,
+        image_video_folder=FOLDER_IMAGES,
         embedding_folder=FOLDER_EMBEDDINGS,
         top_k=TOP_K,
         print_progress=False,
@@ -136,6 +165,8 @@ def main():
                 results_dict["clip"]["precision@"]["1"] += precision_at_k(ground_truth, matches_clip, 1)
                 results_dict["clip"]["precision@"]["5"] +=  precision_at_k(ground_truth, matches_clip, 5)
                 results_dict["clip"]["precision@"]["10"] +=  precision_at_k(ground_truth, matches_clip, 10)
+                
+                results_dict["clip"]["accuracy"] += accuracy(ground_truth, matches_clip, all_filenames)
 
                 matches_clip_path = [str(Path(FOLDER_IMAGES).joinpath(Path(str(name)))) for name in matches_clip]
                 
@@ -160,6 +191,8 @@ def main():
                 results_dict["clip+paligemma"]["precision@"]["1"] += precision_at_k(ground_truth,   matches_paligemma, 1)
                 results_dict["clip+paligemma"]["precision@"]["5"] +=  precision_at_k(ground_truth,  matches_paligemma, 5)
                 results_dict["clip+paligemma"]["precision@"]["10"] +=  precision_at_k(ground_truth, matches_paligemma, 10)
+
+                results_dict["clip+paligemma"]["accuracy"] += accuracy(ground_truth, matches_paligemma, all_filenames)
                 
                 results_dict["total_captions_processed"] += 1
                 
