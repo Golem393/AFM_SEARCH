@@ -11,7 +11,8 @@ def open_json_file(file_path)->dict:
         "total_captions_processed": 0,
         "clip": {
             "recall@": {"1": 0,"5": 0,"10": 0},
-            "precision@": {"1": 0.0,"5": 0.0,"10": 0.0}
+            "precision@": {"1": 0.0,"5": 0.0,"10": 0.0},
+            "acc": 3.3
             },
             ...,
     }}
@@ -27,9 +28,13 @@ def calc_metrics(results:dict)->tuple[dict, int]:
     images = results["last_processed_index"]
     
     for model in ["clip", "clip+paligemma"]:
-        for metric_name, metric_dict in results[model].items():
-            for k, value in metric_dict.items():
-                results[model][metric_name][k] = value / captions
+        for metric_name, metric_value in results[model].items():
+            if isinstance(metric_value, dict):
+                for k, value in metric_value.items():
+                    results[model][metric_name][k] = value / captions
+            else:
+                # Handle scalar values like "acc"
+                results[model][metric_name] = metric_value / captions
     pprint("Metrics calculated:")
     pprint(results)
     return results, captions, images
