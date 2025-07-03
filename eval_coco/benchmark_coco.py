@@ -134,7 +134,7 @@ def main():
     coco_extractor = COCOCaptionExtractor(FOLDER_ANNOTATIONS, FOLDER_IMAGES)
     
     if subset != 0:
-        FILE_PROGRESS = Path(f'benchmarks/eval_progress_{subset}.json')
+        FILE_PROGRESS = Path(f'benchmarks/eval_progress_llava_{subset}.json')
         FILE_EMBEDDING_SUBSET = Path(f"embeddings/caption_embeddings_{subset}.h5")
         preloaded_caption_embeddings = load_embeddings(FILE_EMBEDDING_SUBSET)
         files = sorted(load_list_from_txt(f"subsets/subset_{subset}.txt"))
@@ -159,7 +159,7 @@ def main():
         )
         
     else:
-        FILE_PROGRESS = Path(f'benchmarks/eval_progress_all.json')
+        FILE_PROGRESS = Path(f'benchmarks/eval_progress_llava.json')
         FILE_EMBEDDING = Path("embeddings/caption_embeddings.h5")
         preloaded_caption_embeddings = load_embeddings(FILE_EMBEDDING)
         files = sorted(list(coco_extractor.get_all_filepaths()))
