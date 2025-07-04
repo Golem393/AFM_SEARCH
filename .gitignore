@@ -4,6 +4,7 @@ eval_coco/embeddings
 eval_coco/output
 eval_coco/subsets
 benchmarks/
+tmp/
 
 eval_flickr8k/benchmarks
 eval_flickr8k/embeddings
