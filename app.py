@@ -72,7 +72,6 @@ class ImageRetrievalApp:
             # TODO: clear search input as well
             return results, new_batch_idx, new_title, gr.update(value="Search"), "Search"
 
-
     # ======================================================================= #
     # This section contains methods for the search feature.
 
@@ -161,7 +160,7 @@ class ImageRetrievalApp:
                 os.remove(selected_item_path)
                 self._all_paths.remove(selected_item_path)
                 updated_batch = self._all_paths[:self._batchsize]
-                return updated_batch, f"✅ Deleted {os.path.basename(selected_item_path)} items(s).", 1
+                return updated_batch, f"✅ Deleted {os.path.basename(selected_item_path)}.", 1
             except Exception as e:
                 return gr.update(), f"❌ Failed to delete: {str(e)}", gr.update()
         return gr.update(), "⚠️ No valid item selected.", gr.update()
@@ -201,6 +200,25 @@ class ImageRetrievalApp:
             return f"✅ Uploaded: {len(uploaded_paths)} item(s).", self._all_paths[:self._batchsize], 1
         else:
             return "⚠️ No valid items uploaded.", self._all_paths[:self._batchsize], 1
+      
+    # ======================================================================= #
+    # This section contains methods for the settings page     
+
+    def _get_stats(self):
+        """Returns number of images and videos alongside size on disk in bytes"""
+        n_imgs, n_vids, s_imgs, s_vids = 0, 0, 0, 0
+        for file in os.listdir(self.gallery_dir):
+            filepath = os.path.join(self.gallery_dir, file)
+            if not os.path.isfile(filepath):
+                continue
+            size = os.path.getsize(filepath)
+            if file.lower().endswith(('.jpg','.jpeg','.png')):
+                n_imgs += 1
+                s_imgs += size
+            elif file.lower().endswith(('.mp4')):
+                n_vids += 1
+                s_vids += size
+        return {"imgs": [n_imgs, s_imgs], "vids": [n_vids, s_vids]}
 
     # ======================================================================= #
     # This section contains methods to build the Search, Upload and Settings page
@@ -211,6 +229,7 @@ class ImageRetrievalApp:
             # Title to display: Displays number of matches after each search
             gallery_title = gr.Markdown("## 🎞️ Camera Roll")
 
+            # Top row with Searchbox and Search button
             with gr.Row():
                 self.search_input = gr.Textbox(
                     placeholder="Search for anyting...", 
@@ -225,12 +244,13 @@ class ImageRetrievalApp:
             
             # Batch of images to display
             initial_batch = self._all_paths[:self._batchsize]
-            self.batch_index = gr.State(1)  # start after first batch
             
+            # State variables
+            self.batch_index = gr.State(1)  # start after first batch
             self.btn_label = gr.State("Search") # state for the search/cancel button
-
             self.selected_item = gr.State("") # state to collect selected item
 
+            # Gallery
             self.gallery = gr.Gallery(
                 label=" ",
                 value=initial_batch,
@@ -239,6 +259,7 @@ class ImageRetrievalApp:
                 interactive = False
             )
 
+            # Bottom row with load more and delete button
             with gr.Row():
                 self.load_more_btn = gr.Button("Load More Images")
                 self.delete_btn = gr.Button("Delete Selected Item")
@@ -252,6 +273,7 @@ class ImageRetrievalApp:
                 outputs=[self.gallery, self.batch_index, self.status_bar]
             )   
 
+            # Select item event listener
             self.gallery.select(
                 fn=self._on_gallery_select,
                 inputs=[],
@@ -264,7 +286,6 @@ class ImageRetrievalApp:
                 inputs=[self.selected_item],
                 outputs=[self.gallery, self.status_bar, self.batch_index]
             )
-
 
             # Bind search/cancel button
             self.search_btn.click(
@@ -305,17 +326,69 @@ class ImageRetrievalApp:
 
     def build_settings_tab(self):
         with gr.Tab("Settings"):
-            gr.Markdown("## ⚙️ Settings (to be implemented)")
+            gr.Markdown("## ⚙️ Settings")
+
+            gr.Markdown("### VLM")
+            vlm_checkbox = gr.Checkbox(
+                value=True, 
+                label="Verify with VLM", 
+                info="A VLM is used to refine search results. Deactivating this" \
+                " feature improves runtime but reduces quality of the results.", 
+                interactive=True
+            )
+
+            verification_prompt = gr.Textbox(
+                value="Is <query> a fitting description of the image? Answer only with yes or no!",
+                placeholder="Use <query> as a placeholder for your search query",
+                label="VLM Verification prompt",
+                info="The VLM verifies items using a verification prompt. You can set a custom one here.",
+                interactive=True
+            )
+            
+            gr.Markdown("### CLIP")
+            top_k = gr.Slider(
+                minimum=1, 
+                maximum=100, 
+                value=30, 
+                step=1, 
+                label="Number of CLIP matches",
+                info="CLIP retrieves a pre-defined number of items to be " \
+                "verified by the VLM. Increasing this value negatively effects " \
+                "runtime but might improve results.",
+                interactive = True,
+            )
+            
+            video_embedder = gr.Dropdown(
+                choices=["keyframe_k_frames", "uniform_k_frames", "keyframe_average"],
+                value="keyframe_k_frames",
+                multiselect=False,
+                label="Video Embedder",
+                info="To extract keyframes from videos different algorithms can be used.",
+                interactive=True
+            )
+
+            with gr.Row():
+                save_btn = gr.Button("Save Settings")
+                restore_btn = gr.Button("Restore Defaults")
+
+            gr.Markdown('### Statistic')
+            stats = self._get_stats()
+            gr.Markdown(
+                f"{stats['imgs'][0]} Image(s): {stats['imgs'][1]/1e6:.1f}MB <br>{stats['vids'][0]} Video(s): {stats['vids'][1]/1e6:.1f}MB", 
+                container=True, 
+                line_breaks=True
+            )
 
     def build_interface(self):
         with gr.Blocks() as interface:
-            gr.Markdown('# AFM_SEARCH')
+            gr.Markdown('# 🔍 AFM_SEARCH')
             with gr.Row():
                 with gr.Column(scale=1):
                     with gr.Tabs():
                         self.build_search_tab()
                         self.build_upload_tab()
                         self.build_settings_tab()
+            gr.Markdown("Made by Benjamin Kasper, Flavio Arrigoni and Simon Hartmann. Find out more on the projects [GitHub](https://github.com/Golem393/AFM_SEARCH/)")
         return interface
 
     def launch(self):

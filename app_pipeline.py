@@ -1,4 +1,4 @@
-from clip_matcher import CLIPMatcher
+from clip_matcher2 import CLIPMatcher
 from paligemma_runner import PaliGemmaVerifier
 import os
 from pprint import pprint
@@ -22,7 +22,7 @@ class CLIPPaliGemmaPipeline:
 
         self.clip_matcher = CLIPMatcher(
             image_video_folder=self.gallery,
-            embedding_folder='/usr/prakt/s0122/afm/dataset/flickr8k/',
+            embedding_folder='/usr/prakt/s0122/afm/AFM_SEARCH/tmp/',
             top_k=self.top_k_clip_matches,
             port=self.port,
             video_embedder_type=self.video_embedder_type,
@@ -64,7 +64,7 @@ class CLIPPaliGemmaPipeline:
 if __name__ == "__main__":
 
     pipeline = CLIPPaliGemmaPipeline(
-        gallery="/usr/prakt/s0122/afm/dataset/flickr8k/Flicker8k_Dataset/",
+        gallery="/usr/prakt/s0122/afm/AFM_SEARCH/tmp/",
         top_k_clip_matches=30, 
         video_embedder_type = "keyframe_k_frames",  #"keyframe_k_frames", "uniform_k_frames", "keyframe_average", "uniform_average", "optical_flow" "clip_k_frames"
         frames_per_video_clip_max = 20,
