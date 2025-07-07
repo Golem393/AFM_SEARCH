@@ -311,7 +311,7 @@ def calc_metrics(results:dict)->tuple[dict, int]:
     captions = results["total_captions_processed"]
     images = results["last_processed_index"]
     
-    for model in ["clip", "clip+paligemma"]:
+    for model in ["clip", "git", "clip+git", "clip+llava", "git+llava", "clip+git+llava"]:
         for metric_name, metric_value in results[model].items():
             if isinstance(metric_value, dict):
                 for k, value in metric_value.items():
@@ -323,7 +323,7 @@ def calc_metrics(results:dict)->tuple[dict, int]:
     pprint(results)
     return results, captions, images
 #%%
-normalized_results, samples, images = calc_metrics(open_json_file("benchmarks/eval_progress_10000.json"))                    
+normalized_results, samples, images = calc_metrics(open_json_file("benchmarks/eval_progress_llava_10000.json"))                    
 # %%
 print(f"Metrics for {samples} captions")
 print("Normalized Clip Results:")
