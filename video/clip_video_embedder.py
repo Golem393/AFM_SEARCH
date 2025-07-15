@@ -4,7 +4,7 @@ import os
 from video.key_frame_extractors import (
     extract_keyframes_optical_flow, extract_keyframes_ffmpeg, 
     extract_uniform_frames, extract_keyframes_optical_flow,
-    extract_keyframes_clip
+    extract_keyframes_clip, extract_keyframes_clip_improved
 )
 
 from video.video_helper import (
@@ -28,19 +28,22 @@ class CLIPVideoEmbedder:
             main_keyframe_time, _ = extract_uniform_frames(video_path, num_frames=num_frames)
 
         elif self.video_embedder_type == "keyframe_average":
-            main_keyframe_time, _ = extract_keyframes_ffmpeg(video_path, max_frames=self.frames_per_video_clip_max)
+            main_keyframe_time, _ = extract_keyframes_ffmpeg(video_path, max_frames=self.frames_per_video_clip_max, num_frames=num_frames)
 
         elif self.video_embedder_type == "uniform_k_frames":
             _, timestamps = extract_uniform_frames(video_path, num_frames=num_frames)
         
         elif self.video_embedder_type == "keyframe_k_frames":
-            _, timestamps = extract_keyframes_ffmpeg(video_path, max_frames=self.frames_per_video_clip_max)
+            _, timestamps = extract_keyframes_ffmpeg(video_path, max_frames=self.frames_per_video_clip_max, num_frames=num_frames)
 
         elif self.video_embedder_type == "optical_flow":
             timestamps, frames = extract_keyframes_optical_flow(video_path, num_keyframes=num_frames)
 
         elif self.video_embedder_type == "clip_k_frames":
             timestamps, frames = extract_keyframes_clip(video_path, self.server_url, num_keyframes=num_frames)
+
+        elif self.video_embedder_type == "extract_keyframes_clip_improved":
+            timestamps, frames = extract_keyframes_clip_improved(video_path, self.server_url, num_keyframes=num_frames)
 
         else:
             raise ValueError(f"Unknown type: {self.video_embedder_type}")

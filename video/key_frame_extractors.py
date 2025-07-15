@@ -118,3 +118,73 @@ def extract_keyframes_clip(video_path: str, server_url, num_keyframes):
     selected_timestamps = [time_stamps[i] for i in selected]
 
     return selected_timestamps, selected_frames
+
+def extract_keyframes_clip_improved(video_path: str, server_url, num_keyframes):
+    num_uniform_frames = num_keyframes * 4
+    _, time_stamps = extract_uniform_frames(video_path, num_uniform_frames)
+    frames = extract_at_timestamps(video_path, time_stamps)
+
+    filtered_frames_data = [] # Store (original_index, frame, timestamp)
+    for i, (frame, timestamp) in enumerate(zip(frames, time_stamps)):
+        # Convert PIL Image to OpenCV format for processing
+        cv_frame = np.array(frame)
+        cv_frame = cv2.cvtColor(cv_frame, cv2.COLOR_RGB2GRAY)
+
+        # 1. Check for pure black/white frames (simple check)
+        mean_intensity = cv_frame.mean()
+        if mean_intensity < 10 or mean_intensity > 245: # Example thresholds
+            continue # Skip very dark or very bright uniform frames
+
+        # 2. Check for blurriness/lack of detail (Laplacian Variance)
+        laplacian_var = cv2.Laplacian(cv_frame, cv2.CV_64F).var()
+        if laplacian_var < 50: # Example threshold, adjust as needed
+            continue # Skip blurry or low-detail frames
+
+        # If it passes the checks, add it to our filtered list
+        filtered_frames_data.append((i, frame, timestamp))
+
+    if not filtered_frames_data:
+        # Fallback if all frames are filtered out (unlikely for most videos)
+        print("Warning: All uniform frames filtered out. Falling back to uniform extraction.")
+        _, time_stamps = extract_uniform_frames(video_path, num_keyframes)
+        frames = extract_at_timestamps(video_path, time_stamps)
+        return time_stamps, frames
+
+
+    # Now, process the filtered frames
+    filtered_frames = [data[1] for data in filtered_frames_data]
+    filtered_original_indices = [data[0] for data in filtered_frames_data]
+    filtered_timestamps = [data[2] for data in filtered_frames_data]
+
+    if not filtered_frames: # Should be caught by the above check, but for safety
+        return [], [] # No valid frames found
+
+    embeddings = embed_frames(server_url, filtered_frames)
+
+    # Compute cosine similarity matrix
+    sim_matrix = embeddings @ embeddings.T
+
+    # Greedy frame selection: pick most dissimilar frames from the FILTERED set
+    selected_filtered_indices = []
+    if len(filtered_frames) > 0:
+        selected_filtered_indices.append(0) # Start with the first valid frame
+    
+    for _ in range(1, min(num_keyframes, len(filtered_frames))):
+        remaining = list(set(range(len(filtered_frames))) - set(selected_filtered_indices))
+        if not remaining:
+            break
+        
+        min_sim = [(i, sim_matrix[i][selected_filtered_indices].mean().item()) for i in remaining]
+        next_frame_in_filtered_set = sorted(min_sim, key=lambda x: x[1])[0][0]
+        selected_filtered_indices.append(next_frame_in_filtered_set)
+
+    # Map back to original uniform_timestamps and uniform_frames
+    final_selected_timestamps = [filtered_timestamps[i] for i in selected_filtered_indices]
+    final_selected_frames = [filtered_frames[i] for i in selected_filtered_indices]
+    
+    # Sort by timestamp for chronological order
+    combined = sorted(zip(final_selected_timestamps, final_selected_frames), key=lambda x: x[0])
+    final_selected_timestamps = [t for t, _ in combined]
+    final_selected_frames = [f for _, f in combined]
+
+    return final_selected_timestamps, final_selected_frames
