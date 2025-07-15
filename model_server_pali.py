@@ -6,6 +6,8 @@ from transformers import AutoProcessor, AutoModelForVision2Seq
 
 import argparse
 import os
+import base64
+from io import BytesIO
 
 import cv2
 
@@ -238,9 +240,7 @@ if __name__ == '__main__':
     os.environ['TOKENIZERS_PARALLELISM'] = 'false'
     
     if not isinstance(TOKEN, str): raise ValueError(f"No valid token found in environment. See README.md for help.")
-
     initialize_models() # init models
-    
     for _ in range(2):
         threading.Thread(target=clip_worker, daemon=True).start()
     for _ in range(1):
