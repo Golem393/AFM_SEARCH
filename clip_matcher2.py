@@ -8,6 +8,7 @@ import requests
 import torch
 import shutil
 import os
+import time
 
 class CLIPMatcher:
     def __init__(self, 
@@ -66,28 +67,33 @@ class CLIPMatcher:
         return [
             f for f in os.listdir(self.image_video_folder) 
             if os.path.isfile(os.path.join(self.image_video_folder, f))
-            and f.lower().endswith((".png", ".jpeg", ".png", ".mp4"))
+            and f.lower().endswith((".png", ".jpeg", ".jpg", ".mp4"))
         ]
 
     def get_embedded_filepaths(self):
         """Get set of paths to all files that are currently embedded."""
         emb_img_filepaths = set(self.image_filenames) if self.image_filenames is not None else set()
-        emb_vid_filepaths = [f"{video.split('.mp4_')[0]}.mp4" for video in self.video_timestamps] if self.video_timestamps is not None else set()
+        emb_vid_filepaths = set([f"{video.split('.mp4_')[0]}.mp4" for video in self.video_timestamps]) if self.video_timestamps is not None else set()
         return emb_img_filepaths | emb_vid_filepaths
 
-    def concat_image_video_emb(self):
+    def concat_image_video_emb(self, retr_imgs=True, retr_vids=True):
         """Concatenates image and video embeddings into one all embeddings file"""
         # Check what type of embeddings are avilable: img + video OR only image/video OR none
-        if self.image_embeddings is not None and self.video_embeddings is not None:
-            # video embeddings AND image embeddings
+        if self.image_embeddings is not None and self.video_embeddings is not None and retr_imgs and retr_vids:
+            # video embeddings AND image embeddings exist and should be retrieved
             self.all_embeddings = np.concatenate([self.image_embeddings, self.video_embeddings], axis=0)
             self.all_filenames_time_stamps = list(self.image_filenames) + list(self.video_timestamps)
             print("Loaded video AND image embeddings")
-        elif self.image_embeddings is not None or self.video_embeddings is not None:
-            # video embeddings OR image embeddings
-            self.all_embeddings = self.image_embeddings if self.image_embeddings is not None else self.video_embeddings
-            self.all_filenames_time_stamps = self.image_filenames if self.image_embeddings is not None else self.video_timestamps
-            print("Loaded ONLY image embeddings") if self.image_embeddings is not None else print("Loaded ONLY video embeddings")
+        elif self.image_embeddings is not None and retr_imgs:
+            # image embeddings exist and only images should be retrieved
+            self.all_embeddings = self.image_embeddings
+            self.all_filenames_time_stamps = self.image_filenames
+            print("Loaded ONLY image embeddings")
+        elif self.video_embeddings is not None and retr_vids:
+            # video embeddings exist and only videos should be retrieved
+            self.all_embeddings = self.video_embeddings
+            self.all_filenames_time_stamps = self.video_timestamps
+            print("Loaded ONLY video embeddings")
         else:
             # NO video embeddings AND image embeddings
             self.all_embeddings = None
@@ -230,12 +236,18 @@ class CLIPMatcher:
 
         self.save() # save embeddings to file
 
-    def find_top_matches(self, prompt):
+    def find_top_matches(self, prompt, top_k, retr_imgs, retr_vids):
+
+        self.top_k = top_k # set new top_k setting
+
+        start_time = time.time()
         # check if items were added/removed to/from the gallery 
         added = set(self.get_all_filepaths()) - self.embedded_filepaths
         removed = self.embedded_filepaths - set(self.get_all_filepaths())
-        
+        update_check = time.time() - start_time
+
         if len(added): # Files were added --> compute new embeddings and add
+            print("Compute embeddings of added files")
             added_image_emb, added_img_filenames = self.compute_embeddings(list(added)) 
             added_video_emb, added_video_timestamps = self.compute_video_embeddings(list(added))
             self.add_emebddings(added_image_emb, added_img_filenames, added_video_emb, added_video_timestamps)
@@ -245,15 +257,19 @@ class CLIPMatcher:
             self.rm_embeddings(list(removed))
             self.embedded_filepaths = self.get_embedded_filepaths()
 
-        self.concat_image_video_emb() # concat embeddings to allow search for images and videos
-        
+        self.concat_image_video_emb(retr_imgs, retr_vids) # concat embeddings to allow search for images and videos
+        concat_time = time.time() - start_time
+
         # If there are no embeddings and return None to avoid crash
         if self.all_embeddings is None:
+            print("No images to search for")
             return None, None
 
-        matcher = MeanMatcher(self.all_embeddings, self.get_text_features(prompt))
+        prompt_emb = self.get_text_features(prompt)
+        prompt_time = time.time() - start_time
+        matcher = MeanMatcher(self.all_embeddings, prompt_emb)
         selected_imgs_vid, similarities = matcher.match(self.all_filenames_time_stamps, self.top_k)
-
+        print(f"{update_check:.2f}, {concat_time:.2f}, {prompt_time:.2f}, {time.time()-start_time}")
         # # Get text features
         # text_features = self.get_text_features()
         

@@ -100,7 +100,7 @@ def detect_scene_changes_direct(video_path: str, threshold: float = 0.05):
         print(f"Scene detection failed: {e.output.decode()}")
         return []
 
-def select_keyframes_hybrid(self, timestamps, scores, duration, max_k=None,
+def select_keyframes_hybrid(timestamps, scores, duration, max_k=None,
                         score_thresh=0.2, std_thresh=0.03, min_k=1):
     # Fallback to uniform sampling if no keyframes at all
     if not timestamps or not scores or len(timestamps) == 0 or len(scores) == 0:

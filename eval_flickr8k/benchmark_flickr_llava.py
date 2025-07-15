@@ -1,7 +1,7 @@
 """
 Benchmarking script for evaluating the models of the project on to the flickr8k dataset.
 
->>> python eval_coco/benchmark_flickr8k.py --port 5000 
+>>> python eval_coco/benchmark_flickr8k_llava.py --port 5000 
 """
 
 from pathlib import Path
@@ -9,7 +9,7 @@ import sys
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from caption_embedder import load_embeddings, find_similar_images
-from paligemma_runner import PaliGemmaVerifier
+from llava_runner import LLaVAVerifier
 from clip_matcher import CLIPMatcher
 from pprint import pprint
 import argparse
@@ -30,7 +30,7 @@ def open_json_file(file_path)->dict:
             ...,
     }}
     """
-    model_names = ["clip", "clip+paligemma"]
+    model_names = ["clip", "clip+llava"]
     if os.path.exists(file_path):
         with open(file_path, 'r') as f:
             all_models_progress = json.load(f)
@@ -68,6 +68,8 @@ def precision_at_k(groundtruth: list, results: list, k: int) -> float:
     """
     groundtruth_set = set(groundtruth)
     k = min(k, len(results))
+    if k == 0:
+        return 0
     top_k_results = results[:k]
     hits = sum(1 for item in top_k_results if item in groundtruth_set)
     return hits / k
@@ -121,7 +123,7 @@ def main():
     with open(FILE_CAPTIONS, 'r') as f:
         file_name_captions_dict =  json.load(f)
         
-    FILE_PROGRESS = Path(f'benchmarks/eval_progress_pali.json')
+    FILE_PROGRESS = Path(f'benchmarks/eval_progress_llava.json')
     FILE_EMBEDDING = Path("embeddings/caption_embeddings.h5")
     preloaded_caption_embeddings = load_embeddings(FILE_EMBEDDING)
     files = sorted([f for f in FOLDER_IMAGES.iterdir() if f.is_file()])
@@ -137,7 +139,7 @@ def main():
         port=port,
     )
    
-    paligemma = PaliGemmaVerifier(port=port)
+    llava = LLaVAVerifier(port=port)
     
     results_dict = open_json_file(FILE_PROGRESS)
     start_index_img = results_dict.get("last_processed_index", 0)
@@ -169,30 +171,34 @@ def main():
                 results_dict["clip"]["accuracy"] += accuracy(ground_truth, matches_clip, all_filenames)
 
                 matches_clip_path = [str(Path(FOLDER_IMAGES).joinpath(Path(str(name)))) for name in matches_clip]
-                
-                results_paligemma = paligemma.verify_batch(matches_clip_path, caption)
 
-                confirmed, rejected, _ = paligemma.corssref_results(results_paligemma, matches_clip)
+                matches_llava = llava.verify_images(
+                    FOLDER_IMAGES, 
+                    matches_clip, 
+                    f"Does this image show a {caption}? (answer only with 'yes' or 'no' and nothing else!)"
+                ) # returns a dict with filename: "yes"/"no"
+
+                confirmed, rejected, _ = corssref_results(matches_llava.values(), matches_llava.keys())
 
                 # Log results:
-                LOG_PATH = Path("benchmarks/log.txt")
+                LOG_PATH = Path("benchmarks/log_llava.txt")
                 with open(LOG_PATH, 'a') as file:
                     line = f"{caption.strip()} target:{img_name} confirmed:{confirmed} rejected:{rejected} clip:{matches_clip}\n"
                     file.write(line)
                 
-                results_paligemma_dict = dict(zip(matches_clip_path, results_paligemma))
+                results_llava_dict = dict(zip(matches_clip_path, matches_llava.values()))
                 
-                matches_paligemma = [Path(k).name for k, v in results_paligemma_dict.items() if str(v).strip().lower() == 'yes']
+                matches_llava = [Path(k).name for k, v in results_llava_dict.items() if str(v).strip().lower() == 'yes']
                 
-                results_dict["clip+paligemma"]["recall@"]["1"] += img_name in matches_paligemma[:1]
-                results_dict["clip+paligemma"]["recall@"]["5"] += img_name in matches_paligemma[:5]
-                results_dict["clip+paligemma"]["recall@"]["10"] += img_name in matches_paligemma[:10]
+                results_dict["clip+llava"]["recall@"]["1"] += img_name in matches_llava[:1]
+                results_dict["clip+llava"]["recall@"]["5"] += img_name in matches_llava[:5]
+                results_dict["clip+llava"]["recall@"]["10"] += img_name in matches_llava[:10]
                 
-                results_dict["clip+paligemma"]["precision@"]["1"] += precision_at_k(ground_truth,   matches_paligemma, 1)
-                results_dict["clip+paligemma"]["precision@"]["5"] +=  precision_at_k(ground_truth,  matches_paligemma, 5)
-                results_dict["clip+paligemma"]["precision@"]["10"] +=  precision_at_k(ground_truth, matches_paligemma, 10)
+                results_dict["clip+llava"]["precision@"]["1"] += precision_at_k(ground_truth,   matches_llava, 1)
+                results_dict["clip+llava"]["precision@"]["5"] +=  precision_at_k(ground_truth,  matches_llava, 5)
+                results_dict["clip+llava"]["precision@"]["10"] +=  precision_at_k(ground_truth, matches_llava, 10)
 
-                results_dict["clip+paligemma"]["accuracy"] += accuracy(ground_truth, matches_paligemma, all_filenames)
+                results_dict["clip+llava"]["accuracy"] += accuracy(ground_truth, matches_llava, all_filenames) 
                 
                 results_dict["total_captions_processed"] += 1
                 
@@ -202,6 +208,31 @@ def main():
             
         results_dict["last_processed_index"] += 1
         save_json_file(FILE_PROGRESS, results_dict)
+
+def corssref_results(verdicts, image_paths):
+    """Method for referencing LLaVAs output with the verified images"""
+
+    confirmed = []
+    rejected = []
+    unclear = []
+
+    # Ensure that verdicts and image paths are lists
+    if not isinstance(verdicts, list): list(verdicts)
+    if not isinstance(image_paths, list): list(image_paths)
+
+    # Check for results inputs mismatch
+    assert len(verdicts)==len(image_paths)
+
+    for r, image in zip(verdicts, image_paths):
+        r = r.lower()
+        if "yes" in r and "no" not in r:
+            confirmed.append(image)
+        elif "no" in r and "yes" not in r:
+            rejected.append(image)
+        else:
+            unclear.append(image)
+
+    return confirmed, rejected, unclear
         
 if __name__ == "__main__":
     main()
