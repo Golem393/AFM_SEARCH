@@ -1,0 +1,18 @@
+{
+    "active": {
+        "RETR_IMGS": 1,
+        "RETR_VIDS": 0,
+        "VERIFY": 1,
+        "VERIFIC_PROMPT": "Is <query> a fitting description of the image? Answer only with yes or no!",
+        "NUM_CLIPMATCHES": 30,
+        "VIDEO_EMB": "keyframe_k_frames"
+    },
+    "default": {
+        "RETR_IMGS": 1,
+        "RETR_VIDS": 1,
+        "VERIFY": 1,
+        "VERIFIC_PROMPT": "Is <query> a fitting description of the image? Answer only with yes or no!",
+        "NUM_CLIPMATCHES": 30,
+        "VIDEO_EMB": "keyframe_k_frames"
+    }
+}

@@ -11,6 +11,9 @@ from io import BytesIO
 
 import cv2
 
+import base64
+from io import BytesIO
+
 import threading
 import queue
 from PIL import Image
