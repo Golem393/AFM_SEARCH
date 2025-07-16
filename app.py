@@ -167,7 +167,7 @@ class ImageRetrievalApp:
                 matches.append(match)
         
         if any(".mp4" in match for match in matches): # Info message for video messages
-            gr.Info("ℹ️ Some matches are videos. See confidence section for more info on the exact timestamp(s)") 
+            gr.Info("ℹ️ Some matches are videos. See confidence section for more info on the exact timestamp") 
         
         gallery_title = f"## {len(results_path)} matches for '{prompt}'"
         
