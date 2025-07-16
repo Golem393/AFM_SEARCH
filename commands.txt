@@ -18,3 +18,15 @@ pip install decord
 pip install ffmpeg-python
 
 srun --jobid=<id> --pty bash
+
+salloc --nodes=1 --cpus-per-task=4 --mem=32G \
+       --gres=gpu:1,VRAM:16G --time=08:00:00 \
+       --partition=PRACT --qos=practical_course
+
+conda activate afm4
+export HF_TOKEN=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
+python model_server_pali.py
+sacct
+
+conda activate afm4
+python eval_msr_vtt/recall_calc.py

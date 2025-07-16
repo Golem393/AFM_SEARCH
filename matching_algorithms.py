@@ -12,13 +12,31 @@ class MeanMatcher():
         self.__similarity = img_emb @ key_emb.T
     def match(self, paths, k):
         means = np.mean(self.__similarity, axis=1)
-        #criterion = np.percentile(means, 95)
-        #k = len(means[means >= criterion])
-        idcs = np.argsort(means)[::-1][:k]
-        top_paths = [paths[idx] for idx in idcs]
-        top_similarities = means[idcs].tolist()
+        idcs = np.argsort(means)[::-1]  # Sort all indices in descending order
+        
+        # Create a dictionary to store the best (highest similarity) entry for each video
+        seen_videos = set()
+        top_paths = []
+        top_similarities = []
+        
+        for idx in idcs:
+            path = paths[idx]
+            
+            # Case 1: Video file (contains '.mp4_' in the path)
+            if '.mp4_' in path:
+                video_name = path.split('_')[0]  # Extract "video1234.mp4"
+                if video_name in seen_videos:
+                    continue  # Skip duplicate videos
+                seen_videos.add(video_name)
+            
+            top_paths.append(path)
+            top_similarities.append(means[idx])
+            
+            # Early exit if we've collected enough
+            if len(top_paths) == k:
+                break
+        
         return top_paths, top_similarities
-
 
 class ParetoFrontMatcher():
     def __init__(self, img_emb, key_emb):
