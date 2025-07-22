@@ -1,53 +1,58 @@
 from clip_matcher2 import CLIPMatcher
 from paligemma_runner import PaliGemmaVerifier
 import os
-from pprint import pprint
 import json
 import time
 
 class CLIPPaliGemmaPipeline:
     def __init__(self, 
                  gallery, 
-                 top_k_clip_matches, 
-                 video_embedder_type:str="keyframe_k_frames", 
+                 config_path,
                  frames_per_video_clip_max:int=20,
                  port:int=5000
                  ):
         
         self.gallery = gallery
-        self.top_k_clip_matches = top_k_clip_matches
-        self.video_embedder_type = video_embedder_type
+        self.config_path = config_path
         self.frames_per_video_clip_max = frames_per_video_clip_max
         self.port = port
+
+        # get confgurable settings from config and set self. variables (e.g. keyframe extractor)
+        print("Load settings...")
+        self.get_settings() 
 
         self.clip_matcher = CLIPMatcher(
             image_video_folder=self.gallery,
             embedding_folder='/usr/prakt/s0122/afm/dataset/demo',
-            top_k=self.top_k_clip_matches,
+            top_k=self.top_n,
             port=self.port,
-            video_embedder_type=self.video_embedder_type,
+            video_embedder_type=self.keyframe_extractor,
             frames_per_video_clip_max=self.frames_per_video_clip_max,
         )
 
         self.verifier = PaliGemmaVerifier(port=self.port)
     
-    def run(self, prompt, top_n_matches, use_vlm, retr_imgs, retr_vids):
+    def run(self, prompt):
+
+        print("Updating settings before run...")
+        self.get_settings()
 
         # Step 1: Run CLIP matcher to find top matches
         print("Running CLIP matcher...")
         top_files, top_scores = self.clip_matcher.find_top_matches(
             prompt, 
-            top_n_matches,
-            retr_imgs,
-            retr_vids
+            self.top_n,
+            self.retr_imgs,
+            self.retr_vids
         )
 
         # top_files are just filenames, PaliGemma requires file_paths
         gallery = self.clip_matcher.image_video_folder
         top_filepaths = [os.path.join(gallery, file) for file in top_files]
         
-        if use_vlm:
+        if self.use_vlm:
             # Verify matches with PaliGemma
+            prompt = self.verification_prompt.split("<query>")[0] + prompt + self.verification_prompt.split("<query>")[1]
             print("Verifying matches with PaliGemma")
             verdict = self.verifier.verify_batch(top_filepaths, prompt)
         
@@ -68,6 +73,7 @@ class CLIPPaliGemmaPipeline:
         print(f"Confirmed by PaliGemma: {len(confirmed_matches)}")
         print(f"Rejected by PaliGemma: {len(rejected_matches)}")
         print(f"Unclear results: {len(unclear_matches)}")
+        print("\n")
 
         return {
             "confirmed": confirmed_matches,
@@ -76,26 +82,41 @@ class CLIPPaliGemmaPipeline:
             "clip_matches": top_files,
             "confirmed_scores": confirmed_scores
         }
+    
+    def get_settings(self):
+        # Load settings from config and set object attributes
+        try:
+            with open(self.config_path, "r") as cfg_file:
+                cfg = json.load(cfg_file)
+            top_n = cfg["active"]["NUM_CLIPMATCHES"] if cfg["active"]["NUM_CLIPMATCHES"] is not None else 30
+            use_vlm = bool(cfg["active"]["VERIFY"]) if cfg["active"]["VERIFY"] is not None else True
+            retr_imgs = bool(cfg["active"]["RETR_IMGS"]) if cfg["active"]["RETR_IMGS"] is not None else True
+            retr_vids = bool(cfg["active"]["RETR_VIDS"]) if cfg["active"]["RETR_VIDS"] is not None else True
+            keyframe_extractor = cfg["active"]["VIDEO_EMB"] if cfg["active"]["VIDEO_EMB"] is not None else "keyframe_k_frames"
+            verification_prompt = cfg["active"]["VERIFIC_PROMPT"] if cfg["active"]["VERIFIC_PROMPT"] is not None else "Is <query> a fitting description of the image? Answer only with yes or no!"
+            
+        except Exception as e:
+            print(f"Couldn't find config file {e}. Use default config")
+            top_n = 30
+            use_vlm = True
+            retr_imgs = True
+            retr_vids = True
+            keyframe_extractor = "keyframe_k_frames" #"keyframe_k_frames", "uniform_k_frames", "keyframe_average", "uniform_average", "optical_flow" "clip_k_frames"
+            verification_prompt = "Is <query> a fitting description of the image? Answer only with yes or no!"
+
+        self.top_n = top_n
+        self.keyframe_extractor = keyframe_extractor
+        self.use_vlm = use_vlm
+        self.retr_imgs = retr_imgs
+        self.retr_vids = retr_vids
+        self.verification_prompt = verification_prompt
+
         
 if __name__ == "__main__":
 
-    # Load settings from config
-    try:
-        with open("config.json", "r") as cfg_file:
-            cfg = json.load(cfg_file)
-    except Exception as e:
-        print(f"Couldn't find config file {e}. Use hardcoded config")
-
-    TOP_N = cfg["active"]["NUM_CLIPMATCHES"] if cfg["active"]["NUM_CLIPMATCHES"] is not None else 30
-    USE_VLM = bool(cfg["active"]["VERIFY"]) if cfg["active"]["VERIFY"] is not None else True
-    RETR_IMGS = bool(cfg["active"]["RETR_IMGS"]) if cfg["active"]["RETR_IMGS"] is not None else True
-    RETR_VIDS = bool(cfg["active"]["RETR_VIDS"]) if cfg["active"]["RETR_VIDS"] is not None else True
-    KEYFRAME_EXTRACTOR = bool(cfg["active"]["VIDEO_EMB"]) if cfg["active"]["VIDEO_EMB"] is not None else "keyframe_k_frames"
-
     pipeline = CLIPPaliGemmaPipeline(
         gallery="/usr/prakt/s0122/afm/dataset/demo/cc3m_0000_0003",
-        top_k_clip_matches=TOP_N, 
-        video_embedder_type = KEYFRAME_EXTRACTOR,  #"keyframe_k_frames", "uniform_k_frames", "keyframe_average", "uniform_average", "optical_flow" "clip_k_frames"
+        config_path="config.json",
         frames_per_video_clip_max = 20,
         port=5004
     )
@@ -120,7 +141,7 @@ if __name__ == "__main__":
 
         if pending_query:
             print(f"Process query: {pending_query}")
-            results = pipeline.run(pending_query, TOP_N, USE_VLM, RETR_IMGS, RETR_VIDS)
+            results = pipeline.run(pending_query)
 
             # Update the file with the new results
             data[pending_query] = results

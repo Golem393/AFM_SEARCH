@@ -2,7 +2,7 @@ import gradio as gr
 import os
 import json
 import time
-import uuid
+import re
 
 class ImageRetrievalApp:
     """Class for Gradio UI of the image/video retrieval pipeline.
@@ -67,6 +67,12 @@ class ImageRetrievalApp:
         """Switches functionality of the search button between search and cancel."""
         if btn_label == "Search":
             results, new_batch_idx, new_title, scores_dict = self._search_items(prompt, current_items)
+            
+            # Triggered when an illegal query was given:
+            if results is None: 
+                initial_batch, new_batch_idx, new_title = self._reset_gallery()
+                return initial_batch, new_batch_idx, new_title, gr.update(value="Search"), "Search", None
+
             results_filenames = [os.path.basename(p) for p in results] # get filenames of results to display along item
             return zip(results,results_filenames), new_batch_idx, new_title, gr.update(value="Cancel"), "Cancel", scores_dict
         else:
@@ -92,17 +98,11 @@ class ImageRetrievalApp:
                 except json.JSONDecodeError:
                     data = {}
 
-        # Check if this prompt has been queried before and instnatly obtain results 
-        # TODO: Currently doesn't take changes in the gallery into account!
-        if query in data:
-            return data[query]
-        
-        # New search needs to be started and prompt is written to .json
-        else: 
-            data[query] = None
-            with open(file_path, 'w', encoding='utf-8') as file:
-                json.dump(data, file, indent=2)
-            return None
+        # Set data for query to none to start search
+        data[query] = None
+        with open(file_path, 'w', encoding='utf-8') as file:
+            json.dump(data, file, indent=2)
+        return None
 
     def _wait_for_response(self, file_path, query, check_interval=0.1):
         """Waits for the results to be written into the json"""
@@ -127,13 +127,17 @@ class ImageRetrievalApp:
     def _search_items(self, prompt, current_items):
         """Central search function of the UI."""
         if not bool(prompt): # check if string is empty
-            return gr.update(), gr.update(), gr.update()
+            return None, None, None, None
         if not prompt.isascii(): # check if non-ascii characters are used
             gr.Warning("⚠️ Please only use ASCII characters")
-            return gr.update(), gr.update(), gr.update()
-        if len(prompt) > 1500: # check if no. character is less than 1500
+            return None, None, None, None
+        if len(prompt) > 500: # check if no. character is less than 1500
             gr.Warning("⚠️ Please use a shorter search query")
-            return gr.update(), gr.update(), gr.update()          
+            return None, None, None, None 
+        if not bool(re.search(r'[A-Za-z]', prompt)):
+            gr.Warning("⚠️ Please use at least one letter")
+            return None, None, None, None 
+        
         # construct path to json that handles UI, Pipeline communication
         json_file_path = os.path.join(self._tmp_dir, "search_requests.json")
         # Request matching images for query from pipeline
@@ -166,7 +170,7 @@ class ImageRetrievalApp:
             else: # image match
                 matches.append(match)
         
-        if any(".mp4" in match for match in matches): # Info message for video messages
+        if any(".mp4" in match for match in matches): # Info message for video matches
             gr.Info("ℹ️ Some matches are videos. See confidence section for more info on the exact timestamp") 
         
         gallery_title = f"## {len(results_path)} matches for '{prompt}'"
@@ -347,12 +351,12 @@ class ImageRetrievalApp:
 
             # Top row with Searchbox and Search button
             with gr.Row():
-                with gr.Column(scale=4):
-                    self.search_input = gr.Textbox(
-                        placeholder="Search for anyting...", 
-                        show_label = False
-                    )
-                    gr.UploadButton("Upload Image to Find Similar Ones")
+
+                self.search_input = gr.Textbox(
+                    placeholder="Search for anyting...", 
+                    show_label=False,
+                    scale=4
+                )
 
                 self.search_btn = gr.Button(
                     "Search",
@@ -488,7 +492,7 @@ class ImageRetrievalApp:
                 interactive = True,
             ) 
             video_embedder = gr.Dropdown(
-                choices=["keyframe_k_frames", "uniform_k_frames", "keyframe_average"],
+                choices=["keyframe_k_frames", "uniform_k_frames", "keyframe_average", "uniform_average", "optical_flow", "clip_k_frames"],
                 value="keyframe_k_frames",
                 multiselect=False,
                 label="Video Embedder",
@@ -523,7 +527,7 @@ class ImageRetrievalApp:
 
     def build_interface(self):
         with gr.Blocks() as interface:
-            gr.Markdown('# 🔍 AFM_SEARCH')
+            gr.Markdown('# 🔍 AFM SEARCH')
             with gr.Row():
                 with gr.Column(scale=1):
                     with gr.Tabs():

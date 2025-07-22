@@ -30,15 +30,6 @@ class CLIPMatcher:
         self.print_progress = print_progress
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.server_url = f"http://localhost:{self.port}"
-        """
-        # Validate model
-        available_models = clip.available_models()
-        if self.model_name not in available_models:
-            raise ValueError(f"Model '{self.model_name}' is not available. Choose from: {available_models}")
-        
-        # Load model
-        self.model, self.preprocess = clip.load(self.model_name, device=self.device)"""
-        print(f"initializing ClipMatcher with device: {self.device}") if self.print_progress else None
         
         model_name = requests.get(f"http://localhost:{self.port}/clip/model_name").json()['clip_model_name']
         model_name_safe = model_name.replace("/", "_")
@@ -53,7 +44,8 @@ class CLIPMatcher:
             self.video_embedding_file = os.path.join(self.embedding_folder, f"{model_name_safe}_{self.video_embedder_type}_embeddings_{len(self.subset)}.npy")
             self.filename_file = os.path.join(self.embedding_folder, f"{model_name_safe}_filenames_{len(self.subset)}.npy")
             self.video_timestamp_file = os.path.join(self.embedding_folder, f"{model_name_safe}_{self.video_embedder_type}_timestamps_{len(self.subset)}.npy")
-        # Load or compute embeddings
+        
+        # Load or compute embeddings at initialization
         if os.path.exists(self.embedding_file) and os.path.exists(self.filename_file):
             self.image_embeddings, self.image_filenames = self.load_embeddings()
         else:
@@ -70,13 +62,11 @@ class CLIPMatcher:
             self.all_embeddings = np.concatenate([self.image_embeddings, self.video_embeddings], axis=0)
             self.all_filenames_time_stamps = list(self.image_filenames) + list(self.video_timestamps)
             print("Loaded video AND image embeddings")
-        
         elif self.image_embeddings is not None or self.video_embeddings is not None:
             # video embeddings OR image embeddings
             self.all_embeddings = self.image_embeddings if self.image_embeddings is not None else self.video_embeddings
             self.all_filenames_time_stamps = self.image_filenames if self.image_embeddings is not None else self.video_timestamps
             print("Loaded ONLY image embeddings") if self.image_embeddings is not None else print("Loaded ONLY video embeddings")
-
         else:
             # NO video embeddings AND image embeddings
             self.all_embeddings = None
@@ -185,8 +175,8 @@ class CLIPMatcher:
         return np.load(self.video_embedding_file), np.load(self.video_timestamp_file)
     
     def find_top_matches(self, prompt):
-        
-        # Check if there are no embeddings and return None to avoid crash
+
+        # If there are no embeddings and return None to avoid crash
         if self.all_embeddings is None:
             return None, None
 

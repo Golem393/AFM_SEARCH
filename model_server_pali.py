@@ -99,8 +99,9 @@ def paligemma_worker():
             paligemma_queue.task_done()
 
 def verify_batch(batch):
-    prompts = [f"Is '{item['prompt']}' a fitting description of the image? Answer only with yes or no!" for item in batch]
-    
+    #prompts = [f"Is '{item['prompt']}' a fitting description of the image? Answer only with yes or no!" for item in batch] reactivate for benchmark
+    prompts = [item['prompt'] for item in batch]
+    print(prompts[0])
     # check if image or if video keyframe by inspecting path:
     images_keyframes = []
     # iterate through every item in list
